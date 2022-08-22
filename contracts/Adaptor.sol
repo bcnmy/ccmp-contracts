@@ -41,7 +41,7 @@ abstract contract Adaptor is
         address _trustedForwarder,
         address _ccmpGateway,
         address _pauser
-    ) public onlyInitializing {
+    ) internal onlyInitializing {
         __Ownable_init();
         __ERC2771Context_init(_trustedForwarder);
         __Pausable_init(_pauser);
