@@ -15,7 +15,7 @@ import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 
 error CallerIsNotCCMPGateway();
 
-abstract contract Adaptor is
+abstract contract CCMPAdaptor is
     Initializable,
     OwnableUpgradeable,
     ReentrancyGuardUpgradeable,

@@ -1,6 +1,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber } from "ethers";
+import { formatBytes32String } from "ethers/lib/utils";
 import { ethers, upgrades } from "hardhat";
 import {
   CCMPGateway,
@@ -12,7 +13,7 @@ import {
   SampleContract,
   CCMPHelper,
 } from "../typechain-types";
-import { CCMPMessagePayloadStruct, CCMPMessageStruct } from "../typechain-types/contracts/Adaptor";
+import { CCMPMessagePayloadStruct, CCMPMessageStruct } from "../typechain-types/contracts/CCMPAdaptor";
 
 describe("CCMPGateway", async function () {
   let owner: SignerWithAddress,
@@ -197,6 +198,7 @@ describe("CCMPGateway", async function () {
         routerAdaptor: "axelar",
         nonce: BigNumber.from(chainId + 1).mul(BigNumber.from(2).mul(128)),
         payload: payloads,
+        _hash: formatBytes32String("0"),
       };
     });
 

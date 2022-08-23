@@ -2,11 +2,11 @@
 pragma solidity 0.8.9;
 
 import "./interfaces/IWormhole.sol";
-import "./Adaptor.sol";
+import "./CCMPAdaptor.sol";
 
 error WormholeVerificationError(string reason);
 
-contract WormholeAdaptor is Adaptor {
+contract WormholeAdaptor is CCMPAdaptor {
     using CCMPMessageUtils for CCMPMessage;
 
     uint32 public wormholeMessageNonce;
@@ -15,8 +15,7 @@ contract WormholeAdaptor is Adaptor {
     event CCMPMessageRoutedViaWormhole(
         uint32 indexed wormholeNonce,
         uint64 indexed sequenceID,
-        uint8 indexed consistencyLevel,
-        CCMPMessage message
+        uint8 indexed consistencyLevel
     );
     event WormholeUpdated(address indexed newWormhole);
 
@@ -53,8 +52,7 @@ contract WormholeAdaptor is Adaptor {
         emit CCMPMessageRoutedViaWormhole(
             wormholeMessageNonce,
             sequenceId,
-            consistencyLevel,
-            _message
+            consistencyLevel
         );
 
         ++wormholeMessageNonce;

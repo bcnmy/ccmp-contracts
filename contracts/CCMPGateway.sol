@@ -34,6 +34,8 @@ contract CCMPGateway is
     Pausable,
     ICCMPGateway
 {
+    using CCMPMessageUtils for CCMPMessage;
+
     mapping(string => ICCMPRouterAdaptor) public adaptors;
     uint128 public nextNonce;
     mapping(uint256 => ICCMPGateway) public gateways;
@@ -46,6 +48,30 @@ contract CCMPGateway is
     );
     event CCMPExecutorUpdated(address indexed newCCMPExecutor);
     event AdaptorUpdated(string indexed adaptorName, address indexed adaptor);
+    event CCMPMessageExecuted(
+        bytes32 indexed hash,
+        address indexed sender,
+        ICCMPGateway sourceGateway,
+        ICCMPRouterAdaptor sourceAdaptor,
+        uint256 sourceChainId,
+        ICCMPGateway destinationChainGateway,
+        uint256 indexed destinationChainId,
+        uint256 nonce,
+        string routerAdaptor,
+        CCMPMessagePayload[] payload
+    );
+    event CCMPMessageRouted(
+        bytes32 indexed hash,
+        address indexed sender,
+        ICCMPGateway sourceGateway,
+        ICCMPRouterAdaptor sourceAdaptor,
+        uint256 sourceChainId,
+        ICCMPGateway destinationChainGateway,
+        uint256 indexed destinationChainId,
+        uint256 nonce,
+        string routerAdaptor,
+        CCMPMessagePayload[] payload
+    );
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -100,10 +126,24 @@ contract CCMPGateway is
             destinationChainId: _destinationChainId,
             nonce: nonce,
             routerAdaptor: adaptorName,
-            payload: _payloads
+            payload: _payloads,
+            _hash: 0
         });
 
         adaptor.routePayload(message, _routerArgs);
+
+        emit CCMPMessageExecuted(
+            message.hash(),
+            message.sender,
+            message.sourceGateway,
+            message.sourceAdaptor,
+            message.sourceChainId,
+            message.destinationGateway,
+            message.destinationChainId,
+            message.nonce,
+            message.routerAdaptor,
+            message.payload
+        );
 
         return true;
     }
@@ -147,6 +187,19 @@ contract CCMPGateway is
         }
 
         ccmpExecutor.executeCCMPMessage(_message);
+
+        emit CCMPMessageExecuted(
+            _message.hash(),
+            _message.sender,
+            _message.sourceGateway,
+            _message.sourceAdaptor,
+            _message.sourceChainId,
+            _message.destinationGateway,
+            _message.destinationChainId,
+            _message.nonce,
+            _message.routerAdaptor,
+            _message.payload
+        );
 
         return true;
     }

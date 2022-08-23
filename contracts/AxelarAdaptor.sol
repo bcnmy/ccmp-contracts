@@ -4,16 +4,15 @@ pragma solidity 0.8.9;
 import "./interfaces/IAxelarGateway.sol";
 import "./structures/CrossChainMessage.sol";
 
-import "./Adaptor.sol";
+import "./CCMPAdaptor.sol";
 
-contract AxelarAdaptor is Adaptor {
+contract AxelarAdaptor is CCMPAdaptor {
     using CCMPMessageUtils for CCMPMessage;
     using StringsUpgradeable for address;
     using StringsUpgradeable for uint256;
 
     IAxelarGateway public axelarGateway;
 
-    event CCMPMessageRoutedViaAxelar(CCMPMessage indexed _message);
     event AxelarGatewayUpdated(address indexed newAxelarGateway);
 
     function initialize(
@@ -46,7 +45,6 @@ contract AxelarAdaptor is Adaptor {
             address(_message.destinationGateway).toHexString(),
             abi.encode(_message.hash())
         );
-        emit CCMPMessageRoutedViaAxelar(_message);
     }
 
     function verifyPayload(

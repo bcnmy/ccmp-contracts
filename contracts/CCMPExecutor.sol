@@ -32,7 +32,7 @@ contract CCMPExecutor is
         address indexed contractAddress,
         bool indexed isUnsupported
     );
-    event CCMPMessageExecuted(
+    event CCMPPayloadExecuted(
         uint256 indexed index,
         address indexed contractAddress,
         bytes returndata
@@ -74,7 +74,7 @@ contract CCMPExecutor is
                 revert ExternalCallFailed(i, contractAddress, returndata);
             }
 
-            emit CCMPMessageExecuted(i, contractAddress, returndata);
+            emit CCMPPayloadExecuted(i, contractAddress, returndata);
 
             unchecked {
                 ++i;
