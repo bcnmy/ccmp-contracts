@@ -25,6 +25,8 @@ abstract contract CCMPAdaptor is
 {
     ICCMPGateway public ccmpGateway;
 
+    event CCMPGatewayUpdated(ICCMPGateway indexed newCCMPGateway);
+
     modifier onlyCCMPGateway() {
         if (_msgSender() != address(ccmpGateway)) {
             revert CallerIsNotCCMPGateway();
@@ -54,6 +56,7 @@ abstract contract CCMPAdaptor is
         onlyOwner
     {
         ccmpGateway = _ccmpGateway;
+        emit CCMPGatewayUpdated(ccmpGateway);
     }
 
     function _msgSender()

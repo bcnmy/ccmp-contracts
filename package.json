@@ -21,6 +21,7 @@
     "typescript": "^4.7.4"
   },
   "dependencies": {
+    "@axelar-network/axelarjs-sdk": "^0.7.0-alpha.2",
     "@openzeppelin/contracts-upgradeable": "^4.7.3",
     "dotenv": "^16.0.1",
     "hardhat-gas-reporter": "^1.0.8",
@@ -30,6 +31,7 @@
     "compile": "hardhat compile",
     "deploy": "hardhat run scripts/deploy.ts",
     "verify": "hardhat verify",
-    "test": "hardhat test"
+    "test": "hardhat test",
+    "upgrade-contract": "hardhat run scripts/upgrade/upgrade.ts"
   }
 }

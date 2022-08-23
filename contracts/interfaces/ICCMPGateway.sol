@@ -19,9 +19,4 @@ interface ICCMPGateway {
 
     function setRouterAdaptor(string calldata name, ICCMPRouterAdaptor adaptor)
         external;
-
-    function getRouterAdaptor(string calldata name)
-        external
-        view
-        returns (address adaptor);
 }

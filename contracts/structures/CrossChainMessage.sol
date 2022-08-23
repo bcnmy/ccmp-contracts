@@ -50,13 +50,12 @@ struct CCMPMessage {
     uint256 nonce;
     string routerAdaptor;
     CCMPMessagePayload[] payload;
-    bytes32 _hash;
 }
 
 library CCMPMessageUtils {
     function hash(CCMPMessage memory message) internal pure returns (bytes32) {
-        if (message._hash == 0) {
-            message._hash = keccak256(
+        return
+            keccak256(
                 abi.encode(
                     message.sender,
                     address(message.sourceGateway),
@@ -69,7 +68,5 @@ library CCMPMessageUtils {
                     message.payload
                 )
             );
-        }
-        return message._hash;
     }
 }

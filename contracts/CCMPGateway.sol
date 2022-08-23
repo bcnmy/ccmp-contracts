@@ -54,7 +54,7 @@ contract CCMPGateway is
         ICCMPGateway sourceGateway,
         ICCMPRouterAdaptor sourceAdaptor,
         uint256 sourceChainId,
-        ICCMPGateway destinationChainGateway,
+        ICCMPGateway destinationGateway,
         uint256 indexed destinationChainId,
         uint256 nonce,
         string routerAdaptor,
@@ -66,7 +66,7 @@ contract CCMPGateway is
         ICCMPGateway sourceGateway,
         ICCMPRouterAdaptor sourceAdaptor,
         uint256 sourceChainId,
-        ICCMPGateway destinationChainGateway,
+        ICCMPGateway destinationGateway,
         uint256 indexed destinationChainId,
         uint256 nonce,
         string routerAdaptor,
@@ -126,8 +126,7 @@ contract CCMPGateway is
             destinationChainId: _destinationChainId,
             nonce: nonce,
             routerAdaptor: adaptorName,
-            payload: _payloads,
-            _hash: 0
+            payload: _payloads
         });
 
         adaptor.routePayload(message, _routerArgs);
@@ -229,14 +228,6 @@ contract CCMPGateway is
     {
         adaptors[name] = adaptor;
         emit AdaptorUpdated(name, address(adaptor));
-    }
-
-    function getRouterAdaptor(string calldata name)
-        external
-        view
-        returns (address adaptor)
-    {
-        return address(adaptors[name]);
     }
 
     function _msgSender()

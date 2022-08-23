@@ -60,6 +60,8 @@ describe("CCMPGateway", async function () {
     ])) as WormholeAdaptor;
     SampleContract = (await (await ethers.getContractFactory("SampleContract")).deploy()) as SampleContract;
     CCMPHelper = (await (await ethers.getContractFactory("CCMPHelper")).deploy()) as CCMPHelper;
+    const chainId = (await ethers.provider.getNetwork()).chainId;
+    await AxelarAdaptor.setDestinationChainIdToName(chainId + 1, "test");
   });
 
   it("Should set Executor correctly", async function () {
@@ -135,7 +137,14 @@ describe("CCMPGateway", async function () {
     it("Should revert if source chain id is same as destnation", async function () {
       await CCMPGateway.setRouterAdaptor("axelar", AxelarAdaptor.address);
       const chainId = (await ethers.provider.getNetwork()).chainId;
-      await expect(CCMPGateway.sendMessage(chainId, "axelar", payloads, emptyBytes))
+      await expect(
+        CCMPGateway.sendMessage(
+          chainId,
+          "axelar",
+          payloads,
+          abiCoder.encode(["string"], [ethers.constants.AddressZero])
+        )
+      )
         .to.be.revertedWithCustomError(CCMPGateway, "UnsupportedDestinationChain")
         .withArgs(chainId);
     });
@@ -143,7 +152,14 @@ describe("CCMPGateway", async function () {
     it("Should revert if destination chain gateway is not registered", async function () {
       await CCMPGateway.setRouterAdaptor("axelar", AxelarAdaptor.address);
       const chainId = (await ethers.provider.getNetwork()).chainId;
-      await expect(CCMPGateway.sendMessage(chainId + 1, "axelar", payloads, emptyBytes))
+      await expect(
+        CCMPGateway.sendMessage(
+          chainId + 1,
+          "axelar",
+          payloads,
+          abiCoder.encode(["string"], [ethers.constants.AddressZero])
+        )
+      )
         .to.be.revertedWithCustomError(CCMPGateway, "UnsupportedDestinationChain")
         .withArgs(chainId + 1);
     });
@@ -153,7 +169,9 @@ describe("CCMPGateway", async function () {
       await CCMPGateway.setRouterAdaptor("axelar", AxelarAdaptor.address);
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
 
-      await expect(CCMPGateway.sendMessage(chainId + 1, "axelar", [], emptyBytes))
+      await expect(
+        CCMPGateway.sendMessage(chainId + 1, "axelar", [], abiCoder.encode(["string"], [ethers.constants.AddressZero]))
+      )
         .to.be.revertedWithCustomError(CCMPGateway, "InvalidPayload")
         .withArgs("No payload");
     });
@@ -163,10 +181,14 @@ describe("CCMPGateway", async function () {
       await CCMPGateway.setRouterAdaptor("axelar", AxelarAdaptor.address);
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
 
-      await expect(CCMPGateway.sendMessage(chainId + 1, "axelar", payloads, emptyBytes)).to.emit(
-        MockAxelarGateway,
-        "ContractCalled"
-      );
+      await expect(
+        CCMPGateway.sendMessage(
+          chainId + 1,
+          "axelar",
+          payloads,
+          abiCoder.encode(["string"], [ethers.constants.AddressZero])
+        )
+      ).to.emit(MockAxelarGateway, "ContractCalled");
     });
   });
 
@@ -198,7 +220,6 @@ describe("CCMPGateway", async function () {
         routerAdaptor: "axelar",
         nonce: BigNumber.from(chainId + 1).mul(BigNumber.from(2).mul(128)),
         payload: payloads,
-        _hash: formatBytes32String("0"),
       };
     });
 
