@@ -22,6 +22,8 @@
   },
   "dependencies": {
     "@axelar-network/axelarjs-sdk": "^0.7.0-alpha.2",
+    "@certusone/wormhole-sdk": "^0.6.2",
+    "@improbable-eng/grpc-web-node-http-transport": "^0.15.0",
     "@openzeppelin/contracts-upgradeable": "^4.7.3",
     "dotenv": "^16.0.1",
     "hardhat-gas-reporter": "^1.0.8",
@@ -29,7 +31,7 @@
   },
   "scripts": {
     "compile": "hardhat compile",
-    "deploy": "hardhat run scripts/deploy.ts",
+    "deploy:testnet": "hardhat run scripts/deploy/testnet.ts",
     "verify": "hardhat verify",
     "test": "hardhat test",
     "upgrade-contract": "hardhat run scripts/upgrade/upgrade.ts"
