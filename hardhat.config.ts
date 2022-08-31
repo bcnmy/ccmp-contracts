@@ -15,9 +15,23 @@ const config: HardhatUserConfig = {
     compilers: [
       {
         version: "0.8.2",
+        settings: {
+          outputSelection: {
+            "*": {
+              "*": ["storageLayout"],
+            },
+          },
+        },
       },
       {
         version: "0.8.9",
+        settings: {
+          outputSelection: {
+            "*": {
+              "*": ["storageLayout"],
+            },
+          },
+        },
       },
     ],
   },

@@ -7,7 +7,7 @@ interface ICCMPRouterAdaptor {
     function verifyPayload(
         CCMPMessage calldata _ccmpMessage,
         bytes calldata _verificationData
-    ) external returns (bool);
+    ) external returns (bool, string memory);
 
     function routePayload(
         CCMPMessage calldata _ccmpMessage,

@@ -24,7 +24,7 @@ error WrongDestination(
     ICCMPGateway destinationGateway
 );
 error AlreadyExecuted(uint256 nonce);
-error VerificationFailed();
+error VerificationFailed(string reason);
 
 contract CCMPGateway is
     Initializable,
@@ -110,6 +110,8 @@ contract CCMPGateway is
         if (destinationGateway == ICCMPGateway(address(0))) {
             revert UnsupportedDestinationChain(_destinationChainId);
         }
+
+        // Global nonce, chainid is included to prevent coliision with messages from different chain but same index
         uint256 nonce = (block.chainid << 128) + nextNonce++;
 
         // Check Payload
@@ -181,8 +183,15 @@ contract CCMPGateway is
         if (adaptor == ICCMPRouterAdaptor(address(0))) {
             revert UnsupportedAdapter(_message.routerAdaptor);
         }
-        if (!adaptor.verifyPayload(_message, _verificationData)) {
-            revert VerificationFailed();
+
+        {
+            (bool verified, string memory reason) = adaptor.verifyPayload(
+                _message,
+                _verificationData
+            );
+            if (!verified) {
+                revert VerificationFailed(reason);
+            }
         }
 
         ccmpExecutor.executeCCMPMessage(_message);

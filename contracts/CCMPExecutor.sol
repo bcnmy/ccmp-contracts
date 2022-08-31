@@ -53,9 +53,11 @@ contract CCMPExecutor is
         whenNotPaused
     {
         uint256 length = _message.payload.length;
+
+        // TODO: Add support for CCMPOperation.TokenTransfer in next release
         for (uint256 i = 0; i < length; ) {
-            if (_message.payload[i].operation != CCMPOperation.ContractCall) {
-                revert UnsupportedOperation(i, _message.payload[i].operation);
+            if (_message.payload[i].operationType != CCMPOperation.ContractCall) {
+                revert UnsupportedOperation(i, _message.payload[i].operationType);
             }
 
             (address contractAddress, bytes memory _calldata) = abi.decode(

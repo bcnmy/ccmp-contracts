@@ -4,8 +4,6 @@ pragma solidity 0.8.9;
 import "./interfaces/IWormhole.sol";
 import "./CCMPAdaptor.sol";
 
-error WormholeVerificationError(string reason);
-
 contract WormholeAdaptor is CCMPAdaptor {
     using CCMPMessageUtils for CCMPMessage;
 
@@ -61,15 +59,17 @@ contract WormholeAdaptor is CCMPAdaptor {
     function verifyPayload(
         CCMPMessage calldata _ccmpMessage,
         bytes calldata _verificationData
-    ) external nonReentrant whenNotPaused returns (bool) {
+    ) external nonReentrant whenNotPaused returns (bool, string memory) {
         (IWormhole.VM memory vm, bool valid, string memory reason) = wormhole
             .parseAndVerifyVM(_verificationData);
 
         if (!valid) {
-            revert WormholeVerificationError(reason);
+            return (valid, reason);
         }
 
-        return
-            keccak256(vm.payload) == keccak256(abi.encode(_ccmpMessage.hash()));
+        return (
+            keccak256(vm.payload) == keccak256(abi.encode(_ccmpMessage.hash())),
+            ""
+        );
     }
 }

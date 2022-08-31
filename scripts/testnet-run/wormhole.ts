@@ -87,15 +87,15 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
       "wormhole",
       [
         {
-          operation: 0,
+          operationType: 0,
           data: ccmpOperationData,
         },
         {
-          operation: 0,
+          operationType: 0,
           data: ccmpOperationData,
         },
         {
-          operation: 0,
+          operationType: 0,
           data: ccmpOperationData,
         },
       ],

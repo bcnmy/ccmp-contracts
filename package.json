@@ -23,6 +23,7 @@
   "dependencies": {
     "@axelar-network/axelarjs-sdk": "^0.7.0-alpha.2",
     "@certusone/wormhole-sdk": "^0.6.2",
+    "@defi-wonderland/smock": "^2.2.0",
     "@improbable-eng/grpc-web-node-http-transport": "^0.15.0",
     "@openzeppelin/contracts-upgradeable": "^4.7.3",
     "dotenv": "^16.0.1",

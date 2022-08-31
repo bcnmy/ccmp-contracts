@@ -8,6 +8,9 @@ import "../structures/Wormhole.sol";
 contract MockWormhole is Structs {
     event MessagePublished(uint32, bytes, uint8);
 
+    bool _validationState = false;
+    bytes _payload = abi.encode(0);
+
     function publishMessage(
         uint32 nonce,
         bytes memory payload,
@@ -17,16 +20,24 @@ contract MockWormhole is Structs {
         return 0;
     }
 
-    function parseAndVerifyVM(bytes calldata encodedVM)
+    function setValidationState(bool vs) public {
+        _validationState = vs;
+    }
+
+    function setPayload(bytes calldata p) public {
+        _payload = p;
+    }
+
+    function parseAndVerifyVM(bytes calldata)
         external
-        pure
+        view
         returns (
             Structs.VM memory vm,
             bool valid,
             string memory reason
         )
     {
-        vm.payload = encodedVM;
-        return (vm, true, "");
+        vm.payload = _payload;
+        return (vm, _validationState, "");
     }
 }

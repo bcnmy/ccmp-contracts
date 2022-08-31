@@ -85,7 +85,7 @@ contract AxelarAdaptor is CCMPAdaptor {
     function verifyPayload(
         CCMPMessage calldata _ccmpMessage,
         bytes calldata _verificationData
-    ) external whenNotPaused nonReentrant returns (bool) {
+    ) external whenNotPaused nonReentrant returns (bool, string memory) {
         bytes32 payloadHash = keccak256(abi.encode(_ccmpMessage.hash()));
         (bytes32 commandId, string memory sourceAdapterAddressChecksummed) = abi
             .decode(_verificationData, (bytes32, string));
@@ -97,13 +97,15 @@ contract AxelarAdaptor is CCMPAdaptor {
                 _ccmpMessage.sourceChainId
             );
         }
-        return
+        return (
             axelarGateway.validateContractCall(
                 commandId,
                 sourceChainName,
                 sourceAdapterAddressChecksummed,
                 payloadHash
-            );
+            ),
+            ""
+        );
     }
 
     function setDestinationChainIdToName(

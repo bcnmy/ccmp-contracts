@@ -22,19 +22,23 @@ struct TokenTransferData {
 }
 
 struct CCMPMessagePayload {
-    CCMPOperation operation;
+    CCMPOperation operationType;
     bytes data;
 }
 
 /*
     {
         "sender": "0xUSER",
-        "chainID: 80001,
-        "nonce": 123,
+        "sourceGateway": "0xGATEWAY",
+        "sourceAdaptor": "0xADAPTOR",
+        "sourceChainId: 80001,
+        "destinationChainGateway": "0xGATEWAY2",
+        "destinationChainId": "1",
+        "nonce": 1,
         "routerAdaptor": "wormhole",
         "payload": [
             {
-                "operation": 0,
+                "operationType": 0,
                 "data": "0xabc"
             }
         ]

@@ -7,5 +7,6 @@ typechain-types
 artifacts
 cache
 .openzeppelin
+*.log*
 
 
