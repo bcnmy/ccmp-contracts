@@ -9,6 +9,7 @@ interface ICCMPGateway {
         uint256 _destinationChainId,
         string calldata _adaptorName,
         CCMPMessagePayload[] calldata _payloads,
+        GasFeePaymentArgs calldata _gasFeePaymentArgs,
         bytes calldata _routerArgs
     ) external returns (bool sent);
 

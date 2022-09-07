@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.16;
 
 import "./interfaces/ICCMPGateway.sol";
 import "./interfaces/ICCMPRouterAdaptor.sol";
@@ -94,6 +94,7 @@ contract CCMPGateway is
         uint256 _destinationChainId,
         string calldata adaptorName,
         CCMPMessagePayload[] calldata _payloads,
+        GasFeePaymentArgs calldata _gasFeePaymentArgs,
         bytes calldata _routerArgs
     ) external nonReentrant whenNotPaused returns (bool sent) {
         // Check Adaptor
@@ -111,39 +112,41 @@ contract CCMPGateway is
             revert UnsupportedDestinationChain(_destinationChainId);
         }
 
-        // Global nonce, chainid is included to prevent coliision with messages from different chain but same index
-        uint256 nonce = (block.chainid << 128) + nextNonce++;
-
         // Check Payload
         if (_payloads.length == 0) {
             revert InvalidPayload("No payload");
         }
 
-        CCMPMessage memory message = CCMPMessage({
-            sender: _msgSender(),
-            sourceGateway: this,
-            sourceAdaptor: adaptor,
-            sourceChainId: block.chainid,
-            destinationGateway: destinationGateway,
-            destinationChainId: _destinationChainId,
-            nonce: nonce,
-            routerAdaptor: adaptorName,
-            payload: _payloads
-        });
+        CCMPMessage memory updatedMessge = ccmpExecutor
+            .processCCMPMessageOnSourceChain(
+                CCMPMessage({
+                    sender: _msgSender(),
+                    sourceGateway: this,
+                    sourceAdaptor: adaptor,
+                    sourceChainId: block.chainid,
+                    destinationGateway: destinationGateway,
+                    destinationChainId: _destinationChainId,
+                    // Global nonce, chainid is included to prevent coliision with messages from different chain but same index
+                    nonce: (block.chainid << 128) + nextNonce++,
+                    routerAdaptor: adaptorName,
+                    gasFeePaymentArgs: _gasFeePaymentArgs,
+                    payload: _payloads
+                })
+            );
 
-        adaptor.routePayload(message, _routerArgs);
+        adaptor.routePayload(updatedMessge, _routerArgs);
 
         emit CCMPMessageExecuted(
-            message.hash(),
-            message.sender,
-            message.sourceGateway,
-            message.sourceAdaptor,
-            message.sourceChainId,
-            message.destinationGateway,
-            message.destinationChainId,
-            message.nonce,
-            message.routerAdaptor,
-            message.payload
+            updatedMessge.hash(),
+            updatedMessge.sender,
+            updatedMessge.sourceGateway,
+            updatedMessge.sourceAdaptor,
+            updatedMessge.sourceChainId,
+            updatedMessge.destinationGateway,
+            updatedMessge.destinationChainId,
+            updatedMessge.nonce,
+            updatedMessge.routerAdaptor,
+            updatedMessge.payload
         );
 
         return true;

@@ -24,13 +24,18 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        version: "0.8.9",
+        version: "0.8.16",
         settings: {
           outputSelection: {
             "*": {
               "*": ["storageLayout"],
             },
           },
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
         },
       },
     ],
