@@ -78,16 +78,14 @@ contract CCMPGateway is
         _disableInitializers();
     }
 
-    function initialize(
-        address _trustedForwader,
-        address _pauser,
-        ICCMPExecutor _executor
-    ) public initializer {
+    function initialize(address _trustedForwader, address _pauser)
+        public
+        initializer
+    {
         __Ownable_init();
         __ERC2771Context_init(_trustedForwader);
         __Pausable_init(_pauser);
         nextNonce = 0;
-        ccmpExecutor = _executor;
     }
 
     function sendMessage(
@@ -96,7 +94,7 @@ contract CCMPGateway is
         CCMPMessagePayload[] calldata _payloads,
         GasFeePaymentArgs calldata _gasFeePaymentArgs,
         bytes calldata _routerArgs
-    ) external nonReentrant whenNotPaused returns (bool sent) {
+    ) external payable nonReentrant whenNotPaused returns (bool sent) {
         // Check Adaptor
         ICCMPRouterAdaptor adaptor = adaptors[adaptorName];
         if (adaptor == ICCMPRouterAdaptor(address(0))) {
@@ -118,21 +116,21 @@ contract CCMPGateway is
         }
 
         CCMPMessage memory updatedMessge = ccmpExecutor
-            .processCCMPMessageOnSourceChain(
-                CCMPMessage({
-                    sender: _msgSender(),
-                    sourceGateway: this,
-                    sourceAdaptor: adaptor,
-                    sourceChainId: block.chainid,
-                    destinationGateway: destinationGateway,
-                    destinationChainId: _destinationChainId,
-                    // Global nonce, chainid is included to prevent coliision with messages from different chain but same index
-                    nonce: (block.chainid << 128) + nextNonce++,
-                    routerAdaptor: adaptorName,
-                    gasFeePaymentArgs: _gasFeePaymentArgs,
-                    payload: _payloads
-                })
-            );
+            .processCCMPMessageOnSourceChain{value: msg.value}(
+            CCMPMessage({
+                sender: _msgSender(),
+                sourceGateway: this,
+                sourceAdaptor: adaptor,
+                sourceChainId: block.chainid,
+                destinationGateway: destinationGateway,
+                destinationChainId: _destinationChainId,
+                // Global nonce, chainid is included to prevent coliision with messages from different chain but same index
+                nonce: (block.chainid << 128) + nextNonce++,
+                routerAdaptor: adaptorName,
+                gasFeePaymentArgs: _gasFeePaymentArgs,
+                payload: _payloads
+            })
+        );
 
         adaptor.routePayload(updatedMessge, _routerArgs);
 

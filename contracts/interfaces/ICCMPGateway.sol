@@ -11,7 +11,7 @@ interface ICCMPGateway {
         CCMPMessagePayload[] calldata _payloads,
         GasFeePaymentArgs calldata _gasFeePaymentArgs,
         bytes calldata _routerArgs
-    ) external returns (bool sent);
+    ) external payable returns (bool sent);
 
     function receiveMessage(
         CCMPMessage calldata _message,

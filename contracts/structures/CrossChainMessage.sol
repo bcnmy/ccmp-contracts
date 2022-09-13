@@ -16,17 +16,6 @@ enum GasFeePaymentMode {
     CutFromCrossChainTokenTransfer
 }
 
-struct ContractCallData {
-    address contractAddress;
-    bytes params;
-}
-
-struct TokenTransferData {
-    address tokenAddress;
-    address receiver;
-    uint256 amount;
-}
-
 struct CCMPMessagePayload {
     CCMPOperation operationType;
     bytes data;

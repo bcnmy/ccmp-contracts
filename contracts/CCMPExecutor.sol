@@ -32,6 +32,9 @@ error TransferAmountLessThanFee(
     address tokenAddress
 );
 error InvalidFeeSourcePayloadIndex(uint256 index);
+error TokenTransferExitFailed(uint256 index);
+error UnsupportedGasFeePaymentMode(GasFeePaymentMode feePaymentMode);
+error InsufficientNativeAmount(uint256 requiredAmount, uint256 actualAmount);
 
 contract CCMPExecutor is
     Initializable,
@@ -61,6 +64,14 @@ contract CCMPExecutor is
         uint256 indexed index,
         address indexed contractAddress,
         bytes returndata
+    );
+    event TokenTransferExecuted(
+        uint256 indexed index,
+        address indexed tokenAddress,
+        uint256 amount,
+        address payable receiver,
+        bytes depositHash,
+        uint256 indexed fromChainId
     );
     event FeePaidViaExtraTokenDeposit(
         address indexed _tokenAddress,
@@ -102,6 +113,7 @@ contract CCMPExecutor is
         __Pausable_init(_pauser);
         ccmpGateway = _ccmpGateway;
         hyphenLiquidityPool = _hyphenLiquidityPool;
+        unsupportedAddress[address(_hyphenLiquidityPool)] = true;
     }
 
     function executeCCMPMessage(CCMPMessage calldata _message)
@@ -112,39 +124,110 @@ contract CCMPExecutor is
         // Execute CCMP Message Content
         uint256 length = _message.payload.length;
 
-        // TODO: Add support for CCMPOperation.TokenTransfer in next release
         for (uint256 i = 0; i < length; ) {
-            if (
-                _message.payload[i].operationType != CCMPOperation.ContractCall
-            ) {
-                revert UnsupportedOperation(
+            CCMPOperation operationType = _message.payload[i].operationType;
+
+            if (operationType == CCMPOperation.ContractCall) {
+                _handleContractCall(_message.payload[i].data, i);
+            } else if (operationType == CCMPOperation.TokenTransfer) {
+                _handleTokenTransfer(
+                    _message.payload[i].data,
                     i,
-                    _message.payload[i].operationType
+                    _message.hash(),
+                    _message.sourceChainId
                 );
+            } else {
+                {
+                    revert UnsupportedOperation(
+                        i,
+                        _message.payload[i].operationType
+                    );
+                }
             }
-
-            (address contractAddress, bytes memory _calldata) = abi.decode(
-                _message.payload[i].data,
-                (address, bytes)
-            );
-            if (unsupportedAddress[contractAddress]) {
-                revert UnsupportedContract(i, contractAddress);
-            }
-
-            (bool success, bytes memory returndata) = contractAddress.call{
-                gas: gasleft()
-            }(_calldata);
-
-            if (!success) {
-                revert ExternalCallFailed(i, contractAddress, returndata);
-            }
-
-            emit CCMPPayloadExecuted(i, contractAddress, returndata);
-
             unchecked {
                 ++i;
             }
         }
+    }
+
+    function _handleContractCall(bytes calldata _payload, uint256 _index)
+        internal
+    {
+        (
+            address contractAddress,
+            bytes memory _calldata
+        ) = _decodeContractCallPayload(_payload);
+
+        if (unsupportedAddress[contractAddress]) {
+            revert UnsupportedContract(_index, contractAddress);
+        }
+
+        (bool success, bytes memory returndata) = contractAddress.call{
+            gas: gasleft()
+        }(_calldata);
+
+        if (!success) {
+            revert ExternalCallFailed(_index, contractAddress, returndata);
+        }
+
+        emit CCMPPayloadExecuted(_index, contractAddress, returndata);
+    }
+
+    function _handleTokenTransfer(
+        bytes calldata _payload,
+        uint256 _index,
+        bytes32 _messageHash,
+        uint256 _fromChainId
+    ) internal {
+        // Decode Transfer Arguments
+        (
+            address tokenAddress,
+            address receiver,
+            uint256 amount
+        ) = _decodeTokenTransferPayload(_payload);
+
+        bytes memory depositHash = abi.encode(_messageHash, _index);
+
+        try
+            hyphenLiquidityPool.sendFundsToUserFromCCMP(
+                tokenAddress,
+                amount,
+                payable(receiver),
+                depositHash,
+                _fromChainId
+            )
+        {
+            emit TokenTransferExecuted(
+                _index,
+                tokenAddress,
+                amount,
+                payable(receiver),
+                depositHash,
+                _fromChainId
+            );
+        } catch {
+            revert TokenTransferExitFailed(_index);
+        }
+    }
+
+    function _decodeContractCallPayload(bytes calldata _payload)
+        internal
+        pure
+        returns (address, bytes memory)
+    {
+        return abi.decode(_payload, (address, bytes));
+    }
+
+    function _decodeTokenTransferPayload(bytes memory _payload)
+        internal
+        pure
+        returns (
+            address,
+            address,
+            uint256
+        )
+    {
+        return abi.decode(_payload, (address, address, uint256));
     }
 
     function processCCMPMessageOnSourceChain(CCMPMessage memory _message)
@@ -154,12 +237,15 @@ contract CCMPExecutor is
         whenNotPaused
         returns (CCMPMessage memory)
     {
+        GasFeePaymentMode feePaymentMode = _message.gasFeePaymentArgs.mode;
+
         // Fee Deposit
-        if (
-            _message.gasFeePaymentArgs.mode ==
-            GasFeePaymentMode.ViaExtraTokenDeposit
-        ) {
+        if (feePaymentMode == GasFeePaymentMode.ViaExtraTokenDeposit) {
             _depositFeeViaExtraTokenDeposit(_message);
+        } else if (
+            feePaymentMode != GasFeePaymentMode.CutFromCrossChainTokenTransfer
+        ) {
+            revert UnsupportedGasFeePaymentMode(feePaymentMode);
         }
 
         // Process Hyphen Deposits if any
@@ -168,11 +254,9 @@ contract CCMPExecutor is
         return _message;
     }
 
-    function _performHyphenDeposits(CCMPMessage memory _message)
-        private
-        nonReentrant
-    {
+    function _performHyphenDeposits(CCMPMessage memory _message) private {
         uint256 length = _message.payload.length;
+        uint256 nativeAmount = msg.value;
 
         if (
             _message.gasFeePaymentArgs.mode ==
@@ -189,11 +273,18 @@ contract CCMPExecutor is
                 _message.payload[i].operationType == CCMPOperation.TokenTransfer
             ) {
                 // Decode Transfer Arguments
-                (address tokenAddress, address receiver, uint256 amount) = abi
-                    .decode(
-                        _message.payload[i].data,
-                        (address, address, uint256)
-                    );
+                (
+                    address tokenAddress,
+                    address receiver,
+                    uint256 amount
+                ) = _decodeTokenTransferPayload(_message.payload[i].data);
+
+                if (tokenAddress == NATIVE_ADDRESS) {
+                    if (nativeAmount < amount) {
+                        revert InsufficientNativeAmount(amount, nativeAmount);
+                    }
+                    nativeAmount -= amount;
+                }
 
                 // Check and cut fee if required
                 if (
@@ -366,6 +457,7 @@ contract CCMPExecutor is
         onlyOwner
     {
         hyphenLiquidityPool = _hyphenLiquidityPool;
+        unsupportedAddress[address(_hyphenLiquidityPool)] = true;
         emit HyphenLiquidityPoolUpdated(address(_hyphenLiquidityPool));
     }
 
