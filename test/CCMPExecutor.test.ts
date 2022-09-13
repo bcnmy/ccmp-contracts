@@ -472,16 +472,7 @@ describe("CCMPExecutor", async function () {
 
       await CCMPExecutor.executeCCMPMessage(message);
 
-      const messageHash = await CCMPHelper.hash(message);
-      const depositHash = abiCoder.encode(["bytes32", "uint256"], [messageHash, 0]);
-
-      expect(MockHyphen.sendFundsToUserFromCCMP).to.have.been.calledWith(
-        NATIVE,
-        parseUnits("1", 18),
-        alice.address,
-        depositHash,
-        chainId + 1
-      );
+      expect(MockHyphen.sendFundsToUserFromCCMP).to.have.been.calledWith(NATIVE, parseUnits("1", 18), alice.address);
     });
 
     it("Should revert if the Hyphen Exit reverts", async function () {

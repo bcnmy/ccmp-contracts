@@ -69,9 +69,7 @@ contract CCMPExecutor is
         uint256 indexed index,
         address indexed tokenAddress,
         uint256 amount,
-        address payable receiver,
-        bytes depositHash,
-        uint256 indexed fromChainId
+        address indexed receiver
     );
     event FeePaidViaExtraTokenDeposit(
         address indexed _tokenAddress,
@@ -130,12 +128,7 @@ contract CCMPExecutor is
             if (operationType == CCMPOperation.ContractCall) {
                 _handleContractCall(_message.payload[i].data, i);
             } else if (operationType == CCMPOperation.TokenTransfer) {
-                _handleTokenTransfer(
-                    _message.payload[i].data,
-                    i,
-                    _message.hash(),
-                    _message.sourceChainId
-                );
+                _handleTokenTransfer(_message.payload[i].data, i);
             } else {
                 {
                     revert UnsupportedOperation(
@@ -173,12 +166,9 @@ contract CCMPExecutor is
         emit CCMPPayloadExecuted(_index, contractAddress, returndata);
     }
 
-    function _handleTokenTransfer(
-        bytes calldata _payload,
-        uint256 _index,
-        bytes32 _messageHash,
-        uint256 _fromChainId
-    ) internal {
+    function _handleTokenTransfer(bytes calldata _payload, uint256 _index)
+        internal
+    {
         // Decode Transfer Arguments
         (
             address tokenAddress,
@@ -186,24 +176,18 @@ contract CCMPExecutor is
             uint256 amount
         ) = _decodeTokenTransferPayload(_payload);
 
-        bytes memory depositHash = abi.encode(_messageHash, _index);
-
         try
             hyphenLiquidityPool.sendFundsToUserFromCCMP(
                 tokenAddress,
                 amount,
-                payable(receiver),
-                depositHash,
-                _fromChainId
+                payable(receiver)
             )
         {
             emit TokenTransferExecuted(
                 _index,
                 tokenAddress,
                 amount,
-                payable(receiver),
-                depositHash,
-                _fromChainId
+                payable(receiver)
             );
         } catch {
             revert TokenTransferExitFailed(_index);

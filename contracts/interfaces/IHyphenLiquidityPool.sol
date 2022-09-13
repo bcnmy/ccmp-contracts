@@ -17,8 +17,6 @@ interface IHyphenLiquidityPool {
     function sendFundsToUserFromCCMP(
         address tokenAddress,
         uint256 amount,
-        address payable receiver,
-        bytes calldata depositHash,
-        uint256 fromChainId
+        address payable receiver
     ) external;
 }
