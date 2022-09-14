@@ -2,12 +2,38 @@
 # yarn lockfile v1
 
 
-"@axelar-network/axelarjs-sdk@^0.7.0-alpha.2":
-  version "0.7.0-alpha.2"
-  resolved "https://registry.yarnpkg.com/@axelar-network/axelarjs-sdk/-/axelarjs-sdk-0.7.0-alpha.2.tgz#00cbc9654aa074fe13c8ff193c38efe490326cad"
-  integrity sha512-+77WZ5m6C/ttdpzsPSkezZOQ0aoxQS/CdGOuSKUFlm8YfPZBYuijBAzGO6w6c//PIKKSoFqjbErU/cyblRojfw==
+"@abacus-network/app@^0.4.2-processtest":
+  version "0.4.2-processtest"
+  resolved "https://registry.yarnpkg.com/@abacus-network/app/-/app-0.4.2-processtest.tgz#b50e60f853492b1b102e855919ebfe16c2e1c92c"
+  integrity sha512-fr7du8xSwJDTcP4kN33nc77K2f+M1NYSlVvvrVV/o00HUf+20CZP2ybOLVSK/5GsJinpgNVjYHzPjqp1/DDmIQ==
   dependencies:
-    "@axelar-network/axelarjs-types" "0.20.0-alpha"
+    "@abacus-network/core" "0.4.2-processtest"
+    "@abacus-network/utils" "0.4.2-processtest"
+    "@openzeppelin/contracts-upgradeable" "^4.5.0"
+
+"@abacus-network/core@0.4.2-processtest":
+  version "0.4.2-processtest"
+  resolved "https://registry.yarnpkg.com/@abacus-network/core/-/core-0.4.2-processtest.tgz#a0bea2b43afd915fda9dd32f535ff1586358a126"
+  integrity sha512-bnssX4ZO8/iveI2oy5ffJcEAL7FSWyNlIUV9CrunIEVdkTu5OR0BxXgVGCs30A1fMSFXmdx1BeSoWgRw0/MFdA==
+  dependencies:
+    "@abacus-network/utils" "0.4.2-processtest"
+    "@openzeppelin/contracts" "^4.6.0"
+    "@openzeppelin/contracts-upgradeable" "^4.6.0"
+    "@summa-tx/memview-sol" "^2.0.0"
+
+"@abacus-network/utils@0.4.2-processtest":
+  version "0.4.2-processtest"
+  resolved "https://registry.yarnpkg.com/@abacus-network/utils/-/utils-0.4.2-processtest.tgz#2f7e5528f3818478819aacb1ebbced1d49bfbde0"
+  integrity sha512-8XtxkgLyo2u9/pGQMx+iy5+HkI2edPNh3mgNyneB2hRX6ovmquMsGfDs+VgKNgQaQgMIlOZ2QS5lp+W9MSFagg==
+  dependencies:
+    ethers "^5.6.8"
+
+"@axelar-network/axelarjs-sdk@^0.10.4-alpha.1":
+  version "0.10.4-alpha.1"
+  resolved "https://registry.yarnpkg.com/@axelar-network/axelarjs-sdk/-/axelarjs-sdk-0.10.4-alpha.1.tgz#30c4d184741cc5aeaec1458a09dc8202f3d742b5"
+  integrity sha512-MUgP5FDpL7NsdkkZ10BCFHbIoYS9sZP50xfTQxGaelc5lppRInm8vD192Z3Oh2kY89ASwiTq+ycurwXTI7qUXw==
+  dependencies:
+    "@axelar-network/axelarjs-types" "^0.24.0"
     "@cosmjs/stargate" "^0.28.4"
     "@types/uuid" "^8.3.1"
     bech32 "^2.0.0"
@@ -17,10 +43,10 @@
     socket.io-client "^4.2.0"
     uuid "^8.3.2"
 
-"@axelar-network/axelarjs-types@0.20.0-alpha":
-  version "0.20.0-alpha"
-  resolved "https://registry.yarnpkg.com/@axelar-network/axelarjs-types/-/axelarjs-types-0.20.0-alpha.tgz#7d9d81c4543917efde2edd04d0f09b10c088ca81"
-  integrity sha512-gqD17T0tzpOS6qijcAd/P2pXPMQ9xhbjghoZJ2Es5MaxEP1f1tpOSPlUPUnxXyZwb2XcXNmyhjw4+P3QdDDqDw==
+"@axelar-network/axelarjs-types@^0.24.0":
+  version "0.24.0"
+  resolved "https://registry.yarnpkg.com/@axelar-network/axelarjs-types/-/axelarjs-types-0.24.0.tgz#ab9cc52690206a36475a1e026aefc74d578ea229"
+  integrity sha512-L353tkWLnujTcaEc3hMK51aiqY7DzEPfBNU9mluvtZIN9WsAbW2F3Rpj3UceSDLG0F98233HDhpPxWiGjIpiFg==
   dependencies:
     long "^4.0.0"
     protobufjs "~6.11.2"
@@ -763,10 +789,15 @@
     table "^6.8.0"
     undici "^5.4.0"
 
-"@openzeppelin/contracts-upgradeable@^4.7.3":
+"@openzeppelin/contracts-upgradeable@^4.5.0", "@openzeppelin/contracts-upgradeable@^4.6.0", "@openzeppelin/contracts-upgradeable@^4.7.3":
   version "4.7.3"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.7.3.tgz#f1d606e2827d409053f3e908ba4eb8adb1dd6995"
   integrity sha512-+wuegAMaLcZnLCJIvrVUDzA9z/Wp93f0Dla/4jJvIhijRrPabjQbZe6fWiECLaJyfn5ci9fqf9vTw3xpQOad2A==
+
+"@openzeppelin/contracts@^4.6.0":
+  version "4.7.3"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.7.3.tgz#939534757a81f8d69cc854c7692805684ff3111e"
+  integrity sha512-dGRS0agJzu8ybo44pCIf3xBaPQN/65AIXNgK8+4gzKd5kbvlqyxryUYVLJv7fK98Seyd2hDZzVEHSWAh0Bt1Yw==
 
 "@openzeppelin/hardhat-upgrades@^1.20.0":
   version "1.20.0"
@@ -993,6 +1024,11 @@
   dependencies:
     antlr4ts "^0.5.0-alpha.4"
 
+"@summa-tx/memview-sol@^2.0.0":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@summa-tx/memview-sol/-/memview-sol-2.0.1.tgz#1ef30762451683d3484c0aaa08e1453a0075d0c4"
+  integrity sha512-GuaXBYG6/aIjKae3UJSBS61J/IuK/NTuk2IJBpGxytkxN1p3ZdRNIp8HQAIOVoCKZQtvzdPaBWokzCk/LakA/Q==
+
 "@szmarczak/http-timer@^1.1.2":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@szmarczak/http-timer/-/http-timer-1.1.2.tgz#b1665e2c461a2cd92f4c1bbf50d5454de0d4b421"
@@ -1208,10 +1244,10 @@
   resolved "https://registry.yarnpkg.com/@types/node/-/node-11.11.6.tgz#df929d1bb2eee5afdda598a41930fe50b43eaa6a"
   integrity sha512-Exw4yUWMBXM3X+8oqzJNRqZSwUAaS4+7NdvHqQuFi/d+synz++xmX3QIf+BFqneW8N31R8Ky+sikfZUXq07ggQ==
 
-"@types/node@>=13.7.0", "@types/node@^18.0.3":
-  version "18.7.11"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.7.11.tgz#486e72cfccde88da24e1f23ff1b7d8bfb64e6250"
-  integrity sha512-KZhFpSLlmK/sdocfSAjqPETTMd0ug6HIMIAwkwUpU79olnZdQtMxpQP+G1wDzCH7na+FltSIhbaZuKdwZ8RDrw==
+"@types/node@>=13.7.0":
+  version "18.7.18"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.7.18.tgz#633184f55c322e4fb08612307c274ee6d5ed3154"
+  integrity sha512-m+6nTEOadJZuTPkKR/SYK3A2d7FZrgElol9UP1Kae90VVU4a6mxnPuLiIW1m4Cq4gZ/nWb9GrdVXJCoCazDAbg==
 
 "@types/node@^10.0.3":
   version "10.17.60"
@@ -1222,6 +1258,11 @@
   version "12.20.55"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-12.20.55.tgz#c329cbd434c42164f846b909bd6f85b5537f6240"
   integrity sha512-J8xLz7q2OFulZ2cyGTLE1TbbZcjpno7FaN6zdJNrgAdrJ+DZzh/uFR6YrTb4C+nXakvud8Q4+rbhoIWlYQbUFQ==
+
+"@types/node@^18.0.3":
+  version "18.7.11"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-18.7.11.tgz#486e72cfccde88da24e1f23ff1b7d8bfb64e6250"
+  integrity sha512-KZhFpSLlmK/sdocfSAjqPETTMd0ug6HIMIAwkwUpU79olnZdQtMxpQP+G1wDzCH7na+FltSIhbaZuKdwZ8RDrw==
 
 "@types/node@^8.0.0":
   version "8.10.66"
@@ -3091,7 +3132,7 @@ ethers@^4.0.32, ethers@^4.0.40:
     uuid "2.0.1"
     xmlhttprequest "1.8.0"
 
-ethers@^5.4.7, ethers@^5.7.0:
+ethers@^5.4.7, ethers@^5.6.8, ethers@^5.7.0:
   version "5.7.0"
   resolved "https://registry.yarnpkg.com/ethers/-/ethers-5.7.0.tgz#0055da174b9e076b242b8282638bc94e04b39835"
   integrity sha512-5Xhzp2ZQRi0Em+0OkOcRHxPzCfoBfgtOQA+RUylSkuHbhTEaQklnYi2hsWbRgs3ztJsXVXd9VKBcO1ScWL8YfA==
@@ -3351,10 +3392,15 @@ flow-stoplight@^1.0.0:
   resolved "https://registry.yarnpkg.com/flow-stoplight/-/flow-stoplight-1.0.0.tgz#4a292c5bcff8b39fa6cc0cb1a853d86f27eeff7b"
   integrity sha512-rDjbZUKpN8OYhB0IE/vY/I8UWO/602IIJEU/76Tv4LvYnwHCk0BCsvz4eRr9n+FQcri7L5cyaXOo0+/Kh4HisA==
 
-follow-redirects@^1.12.1, follow-redirects@^1.14.0, follow-redirects@^1.14.4, follow-redirects@^1.14.9:
+follow-redirects@^1.12.1, follow-redirects@^1.14.4, follow-redirects@^1.14.9:
   version "1.15.1"
   resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.15.1.tgz#0ca6a452306c9b276e4d3127483e29575e207ad5"
   integrity sha512-yLAMQs+k0b2m7cVxpS1VKJVvoz7SS9Td1zss3XRwXj+ZDH00RJgnuLx7E44wx02kQLrdM3aOOy+FpzS7+8OizA==
+
+follow-redirects@^1.14.0:
+  version "1.15.2"
+  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.15.2.tgz#b460864144ba63f2681096f274c4e57026da2c13"
+  integrity sha512-VQLG33o04KaQ8uYi2tVNbdrWp1QWxNNea+nmIB4EVM28v0hmP17z7aG1+wAkNzVq4KeXTq3221ye5qTJP91JwA==
 
 for-each@^0.3.3:
   version "0.3.3"
@@ -3544,10 +3590,19 @@ get-func-name@^2.0.0:
   resolved "https://registry.yarnpkg.com/get-func-name/-/get-func-name-2.0.0.tgz#ead774abee72e20409433a066366023dd6887a41"
   integrity sha512-Hm0ixYtaSZ/V7C8FJrtZIuBBI+iSgL+1Aq82zSu8VQNB4S3Gk8e7Qs3VwBDJAhmRZcFqkl3tQu36g/Foh5I5ig==
 
-get-intrinsic@^1.0.2, get-intrinsic@^1.1.0, get-intrinsic@^1.1.1:
+get-intrinsic@^1.0.2, get-intrinsic@^1.1.0:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/get-intrinsic/-/get-intrinsic-1.1.2.tgz#336975123e05ad0b7ba41f152ee4aadbea6cf598"
   integrity sha512-Jfm3OyCxHh9DJyc28qGk+JmfkpO41A4XkneDSujN9MDXrm4oDKdHvndhZ2dN94+ERNfkYJWDclW6k2L/ZGHjXA==
+  dependencies:
+    function-bind "^1.1.1"
+    has "^1.0.3"
+    has-symbols "^1.0.3"
+
+get-intrinsic@^1.1.1:
+  version "1.1.3"
+  resolved "https://registry.yarnpkg.com/get-intrinsic/-/get-intrinsic-1.1.3.tgz#063c84329ad93e83893c7f4f243ef63ffa351385"
+  integrity sha512-QJVz1Tj7MS099PevUG5jvnt9tSkXN8K14dxQlikJuPt4uD9hHAHjLyLBiLR5zELelBdD9QNRAXZzsJx0WaDL9A==
   dependencies:
     function-bind "^1.1.1"
     has "^1.0.3"
@@ -6272,9 +6327,9 @@ slice-ansi@^4.0.0:
     is-fullwidth-code-point "^3.0.0"
 
 socket.io-client@^4.2.0:
-  version "4.5.1"
-  resolved "https://registry.yarnpkg.com/socket.io-client/-/socket.io-client-4.5.1.tgz#cab8da71976a300d3090414e28c2203a47884d84"
-  integrity sha512-e6nLVgiRYatS+AHXnOnGi4ocOpubvOUCGhyWw8v+/FxW8saHkinG6Dfhi9TU0Kt/8mwJIAASxvw6eujQmjdZVA==
+  version "4.5.2"
+  resolved "https://registry.yarnpkg.com/socket.io-client/-/socket.io-client-4.5.2.tgz#9481518c560388c980c88b01e3cf62f367f04c96"
+  integrity sha512-naqYfFu7CLDiQ1B7AlLhRXKX3gdeaIMfgigwavDzgJoIUYulc1qHH5+2XflTsXTPY7BlPH5rppJyUjhjrKQKLg==
   dependencies:
     "@socket.io/component-emitter" "~3.1.0"
     debug "~4.3.2"
