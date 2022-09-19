@@ -9,6 +9,9 @@ import "./CCMPAdaptor.sol";
 error AxelarAdaptorSourceChainNotSupported(uint256 chainId);
 error AxelarAdaptorDestinationChainNotSupported(uint256 chainId);
 
+/// @title Axelar Adaptor
+/// @author ankur@biconomy.io
+/// @notice Adaptor for the Axelar protocol into the CCMP System
 contract AxelarAdaptor is CCMPAdaptor {
     using CCMPMessageUtils for CCMPMessage;
 
