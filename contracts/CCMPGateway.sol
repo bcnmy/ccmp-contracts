@@ -74,6 +74,7 @@ contract CCMPGateway is
         uint256 indexed destinationChainId,
         uint256 nonce,
         string routerAdaptor,
+        GasFeePaymentArgs args,
         CCMPMessagePayload[] payload
     );
 
@@ -143,7 +144,7 @@ contract CCMPGateway is
 
         adaptor.routePayload(updatedMessge, _routerArgs);
 
-        emit CCMPMessageExecuted(
+        emit CCMPMessageRouted(
             updatedMessge.hash(),
             updatedMessge.sender,
             updatedMessge.sourceGateway,

@@ -5,13 +5,13 @@ import { NodeHttpTransport } from "@improbable-eng/grpc-web-node-http-transport"
 import { getSignedVAA, getEmitterAddressEth, parseSequenceFromLogEth } from "@certusone/wormhole-sdk";
 import type { CCMPMessageStruct } from "../../typechain-types/contracts/AxelarAdaptor";
 
-const gatewayFuji = "0xe73B00374b9B1dc3831ef7F3Fc389A485d4eDd92";
-const wormholeAdapterFuji = "0x3775Cb56244fF117300eEc21b6E44aDb970777C6";
-const sampleContractFuji = "0x2761B67709aB1cdedE276314bD322a113d6858B5";
+const gatewayFuji = "0xa7Bd4f70E4d467E2f35B2c3edD7EC1E7f1e18B2b";
+const wormholeAdapterFuji = "0x1172c99289451B5EaDDefDCB650411E512183099";
+const sampleContractFuji = "0xBA11fA3Af8CA0D2199CFe91eC4c25eaff54Badb4";
 const bridgeAddressFuji = "0x7bbcE28e64B3F8b84d876Ab298393c38ad7aac4C";
 
-const gatewayMumbai = "0x4a69Eb6f8e590A2a5AC31Ee57F9Ed1A5f7ea72E2";
-const sampleContractMumbai = "0x6eDA69DFd55F23Ee20ca1575CC79Aa79Ce453eBb";
+const gatewayMumbai = "0x07a7747Dee8fFED4Fd622A67F9245050e63D2f7C";
+const sampleContractMumbai = "0xb87a4E3B9cFD35Bd11d23993715C21b6a39c7c63";
 
 const wormholeRpcHost = "https://wormhole-v2-testnet-api.certus.one";
 
@@ -54,7 +54,7 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
       gasPrice: ethers.utils.parseUnits("50", "gwei"),
     });
     console.log(`Submitted exit transaction ${hash} on exit chain.`);
-    const { blockNumber } = await wait();
+    const { blockNumber } = await wait(5);
     console.log(`Transaction ${hash} confirmed on exit chain at block ${blockNumber}`);
   } catch (e) {
     console.error(`Error executing transaction`);
@@ -99,11 +99,18 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
           data: ccmpOperationData,
         },
       ],
+      {
+        mode: 0,
+        feeTokenAddress: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        feeAmount: 0,
+        feeSourcePayloadIndex: 0,
+        relayer: gatewayFuji,
+      },
       abiCoder.encode(["uint256"], [CONSISTENCY_LEVEL])
     );
 
     console.log(`Source chain hash: ${hash}`);
-    await wait();
+    await wait(5);
 
     const ccmpMessage = await getCCMPMessagePayloadFromSourceTx(hash);
     console.log(ccmpMessage);

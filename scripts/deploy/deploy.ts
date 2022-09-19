@@ -10,6 +10,7 @@ export type DeployParams = {
   owner: string;
   pauser: string;
   trustedForwarder: string;
+  liquidityPool: string;
   axelarGateway?: string;
   wormholeGateway?: string;
 };
@@ -25,27 +26,31 @@ export const deploy = async ({
   owner,
   pauser,
   trustedForwarder,
+  liquidityPool,
   axelarGateway,
   wormholeGateway,
 }: DeployParams): Promise<CCMPContracts> => {
   const [deployer] = await ethers.getSigners();
   console.log(`Deployer: ${deployer.address}`);
 
+  console.log(`Deploying CCMPGateway...`);
+  const CCMPGateway = (await upgrades.deployProxy(await ethers.getContractFactory("CCMPGateway"), [
+    trustedForwarder,
+    pauser,
+  ])) as CCMPGateway;
+  console.log(`CCMPGateway: ${CCMPGateway.address}`);
+  await waitSec(5);
+
   console.log(`Deploying CCMPExecutor...`);
   const CCMPExecutor = (await upgrades.deployProxy(await ethers.getContractFactory("CCMPExecutor"), [
+    CCMPGateway.address,
+    liquidityPool,
     pauser,
   ])) as CCMPExecutor;
   console.log(`CCMPExecutor: ${CCMPExecutor.address}`);
   await waitSec(5);
 
-  console.log(`Deploying CCMPGateway...`);
-  const CCMPGateway = (await upgrades.deployProxy(await ethers.getContractFactory("CCMPGateway"), [
-    trustedForwarder,
-    pauser,
-    CCMPExecutor.address,
-  ])) as CCMPGateway;
-  console.log(`CCMPGateway: ${CCMPGateway.address}`);
-  await waitSec(5);
+  await CCMPGateway.setCCMPExecutor(CCMPExecutor.address);
 
   let AxelarAdaptor;
   if (axelarGateway) {

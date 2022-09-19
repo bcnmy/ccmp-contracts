@@ -6,7 +6,6 @@ import { GMPStatus } from "@axelar-network/axelarjs-sdk/dist/src/libs/Transactio
 import { CCMPMessageStruct } from "../../typechain-types/contracts/AxelarAdaptor";
 import { getCCMPMessagePayloadFromSourceTx } from "./utils";
 
-
 const gatewayFuji = "0xe73B00374b9B1dc3831ef7F3Fc389A485d4eDd92";
 const axelarAdatorFuji = "0x7db0c0244CB14960e4628cA855A5ce6c6F6C3475";
 const sampleContractFuji = "0x2761B67709aB1cdedE276314bD322a113d6858B5";
@@ -99,6 +98,13 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
           data: ccmpOperationData,
         },
       ],
+      {
+        mode: 0,
+        feeTokenAddress: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        feeAmount: 0,
+        feeSourcePayloadIndex: 0,
+        relayer: gatewayFuji,
+      },
       abiCoder.encode(["string"], [axelarAdaptorMumbai])
     );
 
