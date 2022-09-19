@@ -2,6 +2,7 @@ import * as dotenv from "dotenv";
 
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "solidity-coverage";
 import "hardhat-gas-reporter";
 import "@openzeppelin/hardhat-upgrades";
 
@@ -21,16 +22,25 @@ const config: HardhatUserConfig = {
               "*": ["storageLayout"],
             },
           },
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
         },
       },
       {
-        version: "0.8.9",
+        version: "0.8.16",
         settings: {
           outputSelection: {
             "*": {
               "*": ["storageLayout"],
             },
           },
+          optimizer: {
+            enabled: true,
+            runs: 200,
+          },
+          viaIR: true,
         },
       },
     ],

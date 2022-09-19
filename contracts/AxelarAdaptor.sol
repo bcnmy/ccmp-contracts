@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.16;
 
 import "./interfaces/IAxelarGateway.sol";
 import "./structures/CrossChainMessage.sol";
@@ -20,6 +20,7 @@ contract AxelarAdaptor is CCMPAdaptor {
         uint256 indexed destinationChainId,
         string indexed destinationChainName
     );
+    event AxelarMessageRoutedViaWormhole();
 
     function initialize(
         address _axelarGateway,
@@ -80,6 +81,8 @@ contract AxelarAdaptor is CCMPAdaptor {
             destinationRouterAddress,
             abi.encode(_message.hash())
         );
+
+        emit AxelarMessageRoutedViaWormhole();
     }
 
     function verifyPayload(

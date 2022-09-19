@@ -14,9 +14,14 @@ import {
   IAxelarGateway,
   IAxelarGateway__factory,
   MockWormhole,
+  IHyphenLiquidityPool,
+  IHyphenLiquidityPool__factory,
 } from "../typechain-types";
 import { CCMPMessagePayloadStruct, CCMPMessageStruct } from "../typechain-types/contracts/CCMPAdaptor";
 import { Structs } from "../typechain-types/contracts/interfaces/IWormhole";
+import { GasFeePaymentArgsStruct } from "../typechain-types/contracts/AxelarAdaptor";
+
+const NATIVE = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
 describe("CCMPGateway", async function () {
   let owner: SignerWithAddress,
@@ -31,6 +36,7 @@ describe("CCMPGateway", async function () {
     WormholeAdaptor: WormholeAdaptor,
     MockAxelarGateway: FakeContract<IAxelarGateway>,
     MockWormholeGateway: MockWormhole,
+    MockHyphen: FakeContract<IHyphenLiquidityPool>,
     CCMPHelper: CCMPHelper,
     SampleContract: SampleContract;
   const abiCoder = new ethers.utils.AbiCoder();
@@ -40,15 +46,18 @@ describe("CCMPGateway", async function () {
   beforeEach(async function () {
     [owner, alice, bob, charlie, trustedForwarder, pauser] = await ethers.getSigners();
     MockAxelarGateway = await smock.fake(IAxelarGateway__factory.abi);
+    MockHyphen = await smock.fake(IHyphenLiquidityPool__factory.abi);
     MockWormholeGateway = (await (await ethers.getContractFactory("MockWormhole", owner)).deploy()) as MockWormhole;
-    CCMPExecutor = (await upgrades.deployProxy(await ethers.getContractFactory("CCMPExecutor"), [
-      pauser.address,
-    ])) as CCMPExecutor;
     CCMPGateway = (await upgrades.deployProxy(await ethers.getContractFactory("CCMPGateway"), [
       trustedForwarder.address,
       pauser.address,
-      CCMPExecutor.address,
     ])) as CCMPGateway;
+    CCMPExecutor = (await upgrades.deployProxy(await ethers.getContractFactory("CCMPExecutor"), [
+      CCMPGateway.address,
+      MockHyphen.address,
+      pauser.address,
+    ])) as CCMPExecutor;
+    await CCMPGateway.setCCMPExecutor(CCMPExecutor.address);
     AxelarAdaptor = (await upgrades.deployProxy(await ethers.getContractFactory("AxelarAdaptor"), [
       MockAxelarGateway.address,
       CCMPGateway.address,
@@ -116,6 +125,7 @@ describe("CCMPGateway", async function () {
 
   describe("Sending Messages", async function () {
     let payloads: CCMPMessagePayloadStruct[];
+    let gasFeePaymentArgs: GasFeePaymentArgsStruct;
     const emptyBytes = abiCoder.encode(["bytes"], [ethers.constants.HashZero]);
 
     beforeEach(async function () {
@@ -130,11 +140,19 @@ describe("CCMPGateway", async function () {
         },
       ];
 
+      gasFeePaymentArgs = {
+        mode: 0,
+        feeTokenAddress: NATIVE,
+        feeAmount: 0,
+        relayer: alice.address,
+        feeSourcePayloadIndex: 0,
+      };
+
       MockAxelarGateway.validateContractCall.returns(true);
     });
 
     it("Should revert if adaptor is not supported", async function () {
-      await expect(CCMPGateway.sendMessage(10, "axelar", payloads, emptyBytes))
+      await expect(CCMPGateway.sendMessage(10, "axelar", payloads, gasFeePaymentArgs, emptyBytes))
         .to.be.revertedWithCustomError(CCMPGateway, "UnsupportedAdapter")
         .withArgs("axelar");
     });
@@ -147,6 +165,7 @@ describe("CCMPGateway", async function () {
           chainId,
           "axelar",
           payloads,
+          gasFeePaymentArgs,
           abiCoder.encode(["string"], [ethers.constants.AddressZero])
         )
       )
@@ -162,6 +181,7 @@ describe("CCMPGateway", async function () {
           chainId + 1,
           "axelar",
           payloads,
+          gasFeePaymentArgs,
           abiCoder.encode(["string"], [ethers.constants.AddressZero])
         )
       )
@@ -175,7 +195,13 @@ describe("CCMPGateway", async function () {
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
 
       await expect(
-        CCMPGateway.sendMessage(chainId + 1, "axelar", [], abiCoder.encode(["string"], [ethers.constants.AddressZero]))
+        CCMPGateway.sendMessage(
+          chainId + 1,
+          "axelar",
+          [],
+          gasFeePaymentArgs,
+          abiCoder.encode(["string"], [ethers.constants.AddressZero])
+        )
       )
         .to.be.revertedWithCustomError(CCMPGateway, "InvalidPayload")
         .withArgs("No payload");
@@ -191,6 +217,8 @@ describe("CCMPGateway", async function () {
           chainId + 1,
           "axelar",
           payloads,
+          gasFeePaymentArgs,
+
           abiCoder.encode(["string"], [ethers.constants.AddressZero])
         )
       ).to.not.be.reverted;
@@ -200,6 +228,7 @@ describe("CCMPGateway", async function () {
   describe("Receiving Messages - Axelar", async function () {
     let payloads: CCMPMessagePayloadStruct[];
     let message: CCMPMessageStruct;
+    let gasFeePaymentArgs: GasFeePaymentArgsStruct;
     const emptyBytes = abiCoder.encode(["bytes"], [ethers.constants.HashZero]);
     let chainId: number;
 
@@ -215,6 +244,14 @@ describe("CCMPGateway", async function () {
           data: abiCoder.encode(["address", "bytes"], [SampleContract.address, getSampleCalldata("Hello World 2.0")]),
         },
       ];
+
+      gasFeePaymentArgs = {
+        mode: 0,
+        feeTokenAddress: NATIVE,
+        feeAmount: 0,
+        relayer: alice.address,
+        feeSourcePayloadIndex: 0,
+      };
       message = {
         sender: owner.address,
         sourceGateway: CCMPGateway.address,
@@ -224,6 +261,7 @@ describe("CCMPGateway", async function () {
         destinationChainId: chainId,
         routerAdaptor: "axelar",
         nonce: BigNumber.from(chainId + 1).mul(BigNumber.from(2).mul(128)),
+        gasFeePaymentArgs: gasFeePaymentArgs,
         payload: payloads,
       };
     });
@@ -292,6 +330,7 @@ describe("CCMPGateway", async function () {
   describe("Receiving Messages - Wormhole", async function () {
     let payloads: CCMPMessagePayloadStruct[];
     let message: CCMPMessageStruct;
+    let gasFeePaymentArgs: GasFeePaymentArgsStruct;
     const emptyBytes = abiCoder.encode(["bytes"], [ethers.constants.HashZero]);
 
     const sampleVmStruct: Structs.VMStruct = {
@@ -306,6 +345,14 @@ describe("CCMPGateway", async function () {
       guardianSetIndex: 0,
       signatures: [],
       hash: ethers.utils.keccak256(ethers.constants.AddressZero),
+    };
+
+    gasFeePaymentArgs = {
+      mode: 0,
+      feeTokenAddress: NATIVE,
+      feeAmount: 0,
+      relayer: alice.address,
+      feeSourcePayloadIndex: 0,
     };
     let chainId: number;
 
@@ -330,6 +377,7 @@ describe("CCMPGateway", async function () {
         destinationChainId: chainId,
         routerAdaptor: "wormhole",
         nonce: BigNumber.from(chainId + 1).mul(BigNumber.from(2).mul(128)),
+        gasFeePaymentArgs,
         payload: payloads,
       };
     });

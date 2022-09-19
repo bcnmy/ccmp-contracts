@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.9;
+pragma solidity 0.8.16;
 
 import "./interfaces/ICCMPGateway.sol";
 import "./interfaces/ICCMPRouterAdaptor.sol";
@@ -58,6 +58,7 @@ contract CCMPGateway is
         uint256 indexed destinationChainId,
         uint256 nonce,
         string routerAdaptor,
+        GasFeePaymentArgs args,
         CCMPMessagePayload[] payload
     );
     event CCMPMessageRouted(
@@ -78,24 +79,23 @@ contract CCMPGateway is
         _disableInitializers();
     }
 
-    function initialize(
-        address _trustedForwader,
-        address _pauser,
-        ICCMPExecutor _executor
-    ) public initializer {
+    function initialize(address _trustedForwader, address _pauser)
+        public
+        initializer
+    {
         __Ownable_init();
         __ERC2771Context_init(_trustedForwader);
         __Pausable_init(_pauser);
         nextNonce = 0;
-        ccmpExecutor = _executor;
     }
 
     function sendMessage(
         uint256 _destinationChainId,
         string calldata adaptorName,
         CCMPMessagePayload[] calldata _payloads,
+        GasFeePaymentArgs calldata _gasFeePaymentArgs,
         bytes calldata _routerArgs
-    ) external nonReentrant whenNotPaused returns (bool sent) {
+    ) external payable nonReentrant whenNotPaused returns (bool sent) {
         // Check Adaptor
         ICCMPRouterAdaptor adaptor = adaptors[adaptorName];
         if (adaptor == ICCMPRouterAdaptor(address(0))) {
@@ -111,39 +111,42 @@ contract CCMPGateway is
             revert UnsupportedDestinationChain(_destinationChainId);
         }
 
-        // Global nonce, chainid is included to prevent coliision with messages from different chain but same index
-        uint256 nonce = (block.chainid << 128) + nextNonce++;
-
         // Check Payload
         if (_payloads.length == 0) {
             revert InvalidPayload("No payload");
         }
 
-        CCMPMessage memory message = CCMPMessage({
-            sender: _msgSender(),
-            sourceGateway: this,
-            sourceAdaptor: adaptor,
-            sourceChainId: block.chainid,
-            destinationGateway: destinationGateway,
-            destinationChainId: _destinationChainId,
-            nonce: nonce,
-            routerAdaptor: adaptorName,
-            payload: _payloads
-        });
+        CCMPMessage memory updatedMessge = ccmpExecutor
+            .processCCMPMessageOnSourceChain{value: msg.value}(
+            CCMPMessage({
+                sender: _msgSender(),
+                sourceGateway: this,
+                sourceAdaptor: adaptor,
+                sourceChainId: block.chainid,
+                destinationGateway: destinationGateway,
+                destinationChainId: _destinationChainId,
+                // Global nonce, chainid is included to prevent coliision with messages from different chain but same index
+                nonce: (block.chainid << 128) + nextNonce++,
+                routerAdaptor: adaptorName,
+                gasFeePaymentArgs: _gasFeePaymentArgs,
+                payload: _payloads
+            })
+        );
 
-        adaptor.routePayload(message, _routerArgs);
+        adaptor.routePayload(updatedMessge, _routerArgs);
 
         emit CCMPMessageExecuted(
-            message.hash(),
-            message.sender,
-            message.sourceGateway,
-            message.sourceAdaptor,
-            message.sourceChainId,
-            message.destinationGateway,
-            message.destinationChainId,
-            message.nonce,
-            message.routerAdaptor,
-            message.payload
+            updatedMessge.hash(),
+            updatedMessge.sender,
+            updatedMessge.sourceGateway,
+            updatedMessge.sourceAdaptor,
+            updatedMessge.sourceChainId,
+            updatedMessge.destinationGateway,
+            updatedMessge.destinationChainId,
+            updatedMessge.nonce,
+            updatedMessge.routerAdaptor,
+            updatedMessge.gasFeePaymentArgs,
+            updatedMessge.payload
         );
 
         return true;
@@ -206,8 +209,11 @@ contract CCMPGateway is
             _message.destinationChainId,
             _message.nonce,
             _message.routerAdaptor,
+            _message.gasFeePaymentArgs,
             _message.payload
+
         );
+
 
         return true;
     }
