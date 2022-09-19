@@ -36,6 +36,12 @@ error TokenTransferExitFailed(uint256 index);
 error UnsupportedGasFeePaymentMode(GasFeePaymentMode feePaymentMode);
 error InsufficientNativeAmount(uint256 requiredAmount, uint256 actualAmount);
 
+/// @title CCMPExecutor
+/// @author ankur@biconomy.io
+/// @notice This contract is responsible for the following:
+///         Source Chain: Gas Fee payment, Hyphen Deposits
+///         Destination Chain: Message Execution, Hyphen Transfers
+///         Also stores the gas fee for relayers to claim it later.
 contract CCMPExecutor is
     Initializable,
     OwnableUpgradeable,
@@ -114,6 +120,9 @@ contract CCMPExecutor is
         unsupportedAddress[address(_hyphenLiquidityPool)] = true;
     }
 
+    /// @notice Handles Execution of the received message from CCMP Gateway on destination chain. 
+    ///         Executes contract calls and token transfers
+    /// @param _message The message received from CCMP Gateway.
     function executeCCMPMessage(CCMPMessage calldata _message)
         external
         whenNotPaused
@@ -212,6 +221,8 @@ contract CCMPExecutor is
         return abi.decode(_payload, (address, address, uint256));
     }
 
+    /// @notice Handles fee payment and performs Hyphen Deposits for the message received on the source chain from CCMP Gateway
+    /// @param _message The message received from CCMP Gateway.
     function processCCMPMessageOnSourceChain(CCMPMessage memory _message)
         external
         payable

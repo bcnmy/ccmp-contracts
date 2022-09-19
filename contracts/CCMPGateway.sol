@@ -26,6 +26,9 @@ error WrongDestination(
 error AlreadyExecuted(uint256 nonce);
 error VerificationFailed(string reason);
 
+/// @title CCMPGateway
+/// @author ankur@biconomy.io
+/// @notice The CCMP Gateway acts as the entrypoint to the CCMP system for the users as well as relayers.
 contract CCMPGateway is
     Initializable,
     OwnableUpgradeable,
@@ -89,17 +92,22 @@ contract CCMPGateway is
         nextNonce = 0;
     }
 
+    /// @param _destinationChainId The chain id of the destination chain.
+    /// @param _adaptorName The name of the router adaptor to use. Currently "axelar", "wormhole" and "abacus" are supported.
+    /// @param _gasFeePaymentArgs Contains details for the fee quoted by the relayer.
+    /// @param _routerArgs Contains abi encoded router specific arguments. For ex, CONSISTENCY_LEVEL when sending message via wormhole.
+    /// @return sent The hash of the message sent.
     function sendMessage(
         uint256 _destinationChainId,
-        string calldata adaptorName,
+        string calldata _adaptorName,
         CCMPMessagePayload[] calldata _payloads,
         GasFeePaymentArgs calldata _gasFeePaymentArgs,
         bytes calldata _routerArgs
-    ) external payable nonReentrant whenNotPaused returns (bool sent) {
+    ) external payable nonReentrant whenNotPaused returns (bool) {
         // Check Adaptor
-        ICCMPRouterAdaptor adaptor = adaptors[adaptorName];
+        ICCMPRouterAdaptor adaptor = adaptors[_adaptorName];
         if (adaptor == ICCMPRouterAdaptor(address(0))) {
-            revert UnsupportedAdapter(adaptorName);
+            revert UnsupportedAdapter(_adaptorName);
         }
 
         // Check Chain ID
@@ -127,7 +135,7 @@ contract CCMPGateway is
                 destinationChainId: _destinationChainId,
                 // Global nonce, chainid is included to prevent coliision with messages from different chain but same index
                 nonce: (block.chainid << 128) + nextNonce++,
-                routerAdaptor: adaptorName,
+                routerAdaptor: _adaptorName,
                 gasFeePaymentArgs: _gasFeePaymentArgs,
                 payload: _payloads
             })
@@ -152,10 +160,14 @@ contract CCMPGateway is
         return true;
     }
 
+    /// @notice Function called by the relayer on the destination chain to execute the sent message on the exit chain.
+    /// @param _message The message to be executed.
+    /// @param _verificationData Adaptor specific abi-encoded data required to verify the message's validity on the exit chain. For example, commandId for Axelar.
+    /// @return status The status of the execution.
     function receiveMessage(
         CCMPMessage calldata _message,
         bytes calldata _verificationData
-    ) external whenNotPaused returns (bool received) {
+    ) external whenNotPaused returns (bool) {
         // Check Source
         if (_message.sourceGateway != gateways[_message.sourceChainId]) {
             revert InvalidSource(
@@ -211,9 +223,7 @@ contract CCMPGateway is
             _message.routerAdaptor,
             _message.gasFeePaymentArgs,
             _message.payload
-
         );
-
 
         return true;
     }

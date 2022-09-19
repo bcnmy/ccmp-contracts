@@ -10,6 +10,9 @@ import "./CCMPAdaptor.sol";
 
 error AbacusAdapterDestinationChainUnsupported(uint256 chainId);
 
+/// @title Abacus Adaptor
+/// @author ankur@biconomy.io
+/// @notice Adaptor for the abacus protocol into the CCMP System
 contract AbacusAdapter is
     AbacusConnectionClient,
     CCMPAdaptor,

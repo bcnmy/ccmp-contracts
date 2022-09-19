@@ -4,6 +4,9 @@ pragma solidity 0.8.16;
 import "./interfaces/IWormhole.sol";
 import "./CCMPAdaptor.sol";
 
+/// @title Wormhole Adaptor
+/// @author ankur@biconomy.io
+/// @notice Adaptor for the Wormole protocol into the CCMP System
 contract WormholeAdaptor is CCMPAdaptor {
     using CCMPMessageUtils for CCMPMessage;
 
