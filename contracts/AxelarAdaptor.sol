@@ -20,6 +20,7 @@ contract AxelarAdaptor is CCMPAdaptor {
         uint256 indexed destinationChainId,
         string indexed destinationChainName
     );
+    event AxelarMessageRoutedViaWormhole();
 
     function initialize(
         address _axelarGateway,
@@ -80,6 +81,8 @@ contract AxelarAdaptor is CCMPAdaptor {
             destinationRouterAddress,
             abi.encode(_message.hash())
         );
+
+        emit AxelarMessageRoutedViaWormhole();
     }
 
     function verifyPayload(

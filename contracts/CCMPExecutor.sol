@@ -130,12 +130,10 @@ contract CCMPExecutor is
             } else if (operationType == CCMPOperation.TokenTransfer) {
                 _handleTokenTransfer(_message.payload[i].data, i);
             } else {
-                {
-                    revert UnsupportedOperation(
-                        i,
-                        _message.payload[i].operationType
-                    );
-                }
+                revert UnsupportedOperation(
+                    i,
+                    _message.payload[i].operationType
+                );
             }
             unchecked {
                 ++i;

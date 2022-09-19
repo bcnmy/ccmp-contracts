@@ -58,6 +58,7 @@ contract CCMPGateway is
         uint256 indexed destinationChainId,
         uint256 nonce,
         string routerAdaptor,
+        GasFeePaymentArgs args,
         CCMPMessagePayload[] payload
     );
     event CCMPMessageRouted(
@@ -144,6 +145,7 @@ contract CCMPGateway is
             updatedMessge.destinationChainId,
             updatedMessge.nonce,
             updatedMessge.routerAdaptor,
+            updatedMessge.gasFeePaymentArgs,
             updatedMessge.payload
         );
 
@@ -207,8 +209,11 @@ contract CCMPGateway is
             _message.destinationChainId,
             _message.nonce,
             _message.routerAdaptor,
+            _message.gasFeePaymentArgs,
             _message.payload
+
         );
+
 
         return true;
     }
