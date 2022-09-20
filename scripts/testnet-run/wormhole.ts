@@ -87,23 +87,21 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
       "wormhole",
       [
         {
-          operationType: 0,
-          data: ccmpOperationData,
+          to: sampleContractMumbai,
+          _calldata: calldata,
         },
         {
-          operationType: 0,
-          data: ccmpOperationData,
+          to: sampleContractMumbai,
+          _calldata: calldata,
         },
         {
-          operationType: 0,
-          data: ccmpOperationData,
+          to: sampleContractMumbai,
+          _calldata: calldata,
         },
       ],
       {
-        mode: 0,
         feeTokenAddress: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
         feeAmount: 0,
-        feeSourcePayloadIndex: 0,
         relayer: gatewayFuji,
       },
       abiCoder.encode(["uint256"], [CONSISTENCY_LEVEL])

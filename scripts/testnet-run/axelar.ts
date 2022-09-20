@@ -78,7 +78,6 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
 
   const sampleContract = SampleContract__factory.connect(sampleContractFuji, signer);
   const calldata = sampleContract.interface.encodeFunctionData("emitEvent", ["Hello World"]);
-  const ccmpOperationData = abiCoder.encode(["address", "bytes"], [sampleContractMumbai, calldata]);
 
   try {
     const { hash, wait } = await gateway.sendMessage(
@@ -86,23 +85,21 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
       "axelar",
       [
         {
-          operationType: 0,
-          data: ccmpOperationData,
+          to: sampleContractMumbai,
+          _calldata: calldata,
         },
         {
-          operationType: 0,
-          data: ccmpOperationData,
+          to: sampleContractMumbai,
+          _calldata: calldata,
         },
         {
-          operationType: 0,
-          data: ccmpOperationData,
-        },
+          to: sampleContractMumbai,
+          _calldata: calldata,
+        }
       ],
       {
-        mode: 0,
         feeTokenAddress: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
         feeAmount: 0,
-        feeSourcePayloadIndex: 0,
         relayer: gatewayFuji,
       },
       abiCoder.encode(["string"], [axelarAdaptorMumbai])

@@ -1,5 +1,5 @@
 import { ethers, upgrades } from "hardhat";
-import { CCMPExecutor, CCMPGateway, AxelarAdaptor, WormholeAdaptor, SampleContract } from "../../typechain-types";
+import { CCMPGateway, AxelarAdaptor, WormholeAdaptor, SampleContract } from "../../typechain-types";
 
 const AxelarAdaptorKey = "axelar";
 const WormholeAdaptorKey = "wormhole";
@@ -16,7 +16,6 @@ export type DeployParams = {
 };
 
 export type CCMPContracts = {
-  CCMPExecutor: CCMPExecutor;
   CCMPGateway: CCMPGateway;
   AxelarAdaptor?: AxelarAdaptor;
   WormholeAdaptor?: WormholeAdaptor;
@@ -40,17 +39,6 @@ export const deploy = async ({
   ])) as CCMPGateway;
   console.log(`CCMPGateway: ${CCMPGateway.address}`);
   await waitSec(5);
-
-  console.log(`Deploying CCMPExecutor...`);
-  const CCMPExecutor = (await upgrades.deployProxy(await ethers.getContractFactory("CCMPExecutor"), [
-    CCMPGateway.address,
-    liquidityPool,
-    pauser,
-  ])) as CCMPExecutor;
-  console.log(`CCMPExecutor: ${CCMPExecutor.address}`);
-  await waitSec(5);
-
-  await CCMPGateway.setCCMPExecutor(CCMPExecutor.address);
 
   let AxelarAdaptor;
   if (axelarGateway) {
@@ -79,7 +67,6 @@ export const deploy = async ({
   }
 
   const contracts: CCMPContracts = {
-    CCMPExecutor,
     CCMPGateway,
     AxelarAdaptor,
     WormholeAdaptor,
