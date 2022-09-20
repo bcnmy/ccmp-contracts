@@ -5,6 +5,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import "solidity-coverage";
 import "hardhat-gas-reporter";
 import "@openzeppelin/hardhat-upgrades";
+import "hardhat-contract-sizer";
 
 dotenv.config();
 
@@ -138,6 +139,10 @@ const config: HardhatUserConfig = {
       opera: process.env.FTMSCAN_API_KEY || "",
       ftmTestnet: process.env.FTMSCAN_API_KEY || "",
     },
+  },
+  contractSizer: {
+    alphaSort: true,
+    runOnCompile: true,
   },
 };
 export default config;

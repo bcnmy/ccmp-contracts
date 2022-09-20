@@ -3,14 +3,15 @@ pragma solidity 0.8.16;
 
 import "./interfaces/ICCMPGateway.sol";
 import "./interfaces/ICCMPRouterAdaptor.sol";
-import "./interfaces/ICCMPExecutor.sol";
 import "./structures/CrossChainMessage.sol";
 import "./security/Pausable.sol";
 import "./metatx/ERC2771ContextUpgradeable.sol";
+import "./structures/Constants.sol";
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 // SendMessage
 error UnsupportedAdapter(string adaptorName);
@@ -25,6 +26,15 @@ error WrongDestination(
 );
 error AlreadyExecuted(uint256 nonce);
 error VerificationFailed(string reason);
+error AmountIsZero();
+error NativeAmountMismatch();
+error ExternalCallFailed(
+    uint256 index,
+    address contractAddress,
+    bytes returndata
+);
+error AmountExceedsBalance(uint256 _amount, uint256 balance);
+error InsufficientNativeAmount(uint256 requiredAmount, uint256 actualAmount);
 
 /// @title CCMPGateway
 /// @author ankur@biconomy.io
@@ -35,21 +45,33 @@ contract CCMPGateway is
     ReentrancyGuardUpgradeable,
     ERC2771ContextUpgradeable,
     Pausable,
-    ICCMPGateway
+    ICCMPGateway,
+    Constants
 {
     using CCMPMessageUtils for CCMPMessage;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using CCMPMessageUtils for CCMPMessage;
 
-    mapping(string => ICCMPRouterAdaptor) public adaptors;
+    // Global Nonce (when used, it's prefixe with block.chainid)
     uint128 public nextNonce;
+
+    // Adaptor Name => Adaptor Address
+    mapping(string => ICCMPRouterAdaptor) public adaptors;
+
+    // Destination Chain ID => Gateway Address.
+    // This is set in the outbound message and is verified on the destination chain
     mapping(uint256 => ICCMPGateway) public gateways;
+
+    // Whether a message with nonce N has been executed or not
     mapping(uint256 => bool) public nonceUsed;
-    ICCMPExecutor public ccmpExecutor;
+
+    // Relayer => Token Address => Fee
+    mapping(address => mapping(address => uint256)) public relayerFeeBalance;
 
     event GatewayUpdated(
         uint256 indexed destinationChainId,
         ICCMPGateway indexed gateway
     );
-    event CCMPExecutorUpdated(address indexed newCCMPExecutor);
     event AdaptorUpdated(string indexed adaptorName, address indexed adaptor);
     event CCMPMessageExecuted(
         bytes32 indexed hash,
@@ -77,6 +99,23 @@ contract CCMPGateway is
         GasFeePaymentArgs args,
         CCMPMessagePayload[] payload
     );
+    event CCMPPayloadExecuted(
+        uint256 indexed index,
+        address indexed contractAddress,
+        bytes returndata
+    );
+    event FeePaid(
+        address indexed _tokenAddress,
+        uint256 indexed _amount,
+        address indexed _relayer
+    );
+    event FeeWithdrawn(
+        address indexed _tokenAddress,
+        uint256 indexed _amount,
+        address indexed _relayer,
+        address _to
+    );
+    event CCMPGatewayUpdated(address indexed ccmpGateway);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -125,37 +164,36 @@ contract CCMPGateway is
             revert InvalidPayload("No payload");
         }
 
-        CCMPMessage memory updatedMessge = ccmpExecutor
-            .processCCMPMessageOnSourceChain{value: msg.value}(
-            CCMPMessage({
-                sender: _msgSender(),
-                sourceGateway: this,
-                sourceAdaptor: adaptor,
-                sourceChainId: block.chainid,
-                destinationGateway: destinationGateway,
-                destinationChainId: _destinationChainId,
-                // Global nonce, chainid is included to prevent coliision with messages from different chain but same index
-                nonce: (block.chainid << 128) + nextNonce++,
-                routerAdaptor: _adaptorName,
-                gasFeePaymentArgs: _gasFeePaymentArgs,
-                payload: _payloads
-            })
-        );
+        CCMPMessage memory message = CCMPMessage({
+            sender: _msgSender(),
+            sourceGateway: this,
+            sourceAdaptor: adaptor,
+            sourceChainId: block.chainid,
+            destinationGateway: destinationGateway,
+            destinationChainId: _destinationChainId,
+            // Global nonce, chainid is included to prevent coliision with messages from different chain but same index
+            nonce: (block.chainid << 128) + nextNonce++,
+            routerAdaptor: _adaptorName,
+            gasFeePaymentArgs: _gasFeePaymentArgs,
+            payload: _payloads
+        });
 
-        adaptor.routePayload(updatedMessge, _routerArgs);
+        _handleFee(message);
+
+        adaptor.routePayload(message, _routerArgs);
 
         emit CCMPMessageRouted(
-            updatedMessge.hash(),
-            updatedMessge.sender,
-            updatedMessge.sourceGateway,
-            updatedMessge.sourceAdaptor,
-            updatedMessge.sourceChainId,
-            updatedMessge.destinationGateway,
-            updatedMessge.destinationChainId,
-            updatedMessge.nonce,
-            updatedMessge.routerAdaptor,
-            updatedMessge.gasFeePaymentArgs,
-            updatedMessge.payload
+            message.hash(),
+            message.sender,
+            message.sourceGateway,
+            message.sourceAdaptor,
+            message.sourceChainId,
+            message.destinationGateway,
+            message.destinationChainId,
+            message.nonce,
+            message.routerAdaptor,
+            message.gasFeePaymentArgs,
+            message.payload
         );
 
         return true;
@@ -210,7 +248,7 @@ contract CCMPGateway is
             }
         }
 
-        ccmpExecutor.executeCCMPMessage(_message);
+        _executeCCMPMessage(_message);
 
         emit CCMPMessageExecuted(
             _message.hash(),
@@ -229,6 +267,93 @@ contract CCMPGateway is
         return true;
     }
 
+    /// @notice Handles Execution of the received message from CCMP Gateway on destination chain.
+    /// @param _message The message received from CCMP Gateway.
+    function _executeCCMPMessage(CCMPMessage calldata _message)
+        internal
+        whenNotPaused
+    {
+        // Execute CCMP Message Content
+        uint256 length = _message.payload.length;
+
+        for (uint256 i = 0; i < length; ) {
+            _handleContractCall(_message.payload[i], i);
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function _handleContractCall(
+        CCMPMessagePayload calldata _payload,
+        uint256 _index
+    ) internal {
+        (bool success, bytes memory returndata) = _payload.to.call{
+            gas: gasleft()
+        }(_payload._calldata);
+
+        if (!success) {
+            revert ExternalCallFailed(_index, _payload.to, returndata);
+        }
+
+        emit CCMPPayloadExecuted(_index, _payload.to, returndata);
+    }
+
+    /// @notice Handles fee payment
+    function _handleFee(CCMPMessage memory _message) internal {
+        uint256 feeAmount = _message.gasFeePaymentArgs.feeAmount;
+        address relayer = _message.gasFeePaymentArgs.relayer;
+        address tokenAddress = _message.gasFeePaymentArgs.feeTokenAddress;
+
+        if (feeAmount >= 0) {
+            if (_message.gasFeePaymentArgs.feeTokenAddress == NATIVE_ADDRESS) {
+                if (msg.value != feeAmount) {
+                    revert NativeAmountMismatch();
+                }
+            } else {
+                IERC20Upgradeable(_message.gasFeePaymentArgs.feeTokenAddress)
+                    .safeTransferFrom(
+                        _message.sender,
+                        address(this),
+                        _message.gasFeePaymentArgs.feeAmount
+                    );
+            }
+            relayerFeeBalance[relayer][tokenAddress] += feeAmount;
+        }
+
+        emit FeePaid(tokenAddress, feeAmount, relayer);
+    }
+
+    /// @notice Allows relayers to claim the fee for message on the source chain.
+    /// @param _tokenAddress The token address for which the fee is claimed.
+    /// @param _amount The amount of fee to be claimed.
+    /// @param _to The address to which the fee is claimed.
+    function withdrawFee(
+        address _tokenAddress,
+        uint256 _amount,
+        address _to
+    ) external nonReentrant whenNotPaused {
+        uint256 balance = relayerFeeBalance[_msgSender()][_tokenAddress];
+        if (_amount > balance) {
+            revert AmountExceedsBalance(_amount, balance);
+        }
+
+        if (_tokenAddress == NATIVE_ADDRESS) {
+            (bool success, bytes memory returndata) = _to.call{value: _amount}(
+                ""
+            );
+            if (!success) {
+                revert ExternalCallFailed(0, _to, returndata);
+            }
+        } else {
+            IERC20Upgradeable(_tokenAddress).safeTransfer(_to, _amount);
+        }
+
+        relayerFeeBalance[msg.sender][_tokenAddress] -= _amount;
+
+        emit FeeWithdrawn(_tokenAddress, _amount, msg.sender, _to);
+    }
+
     function setGateway(uint256 _chainId, ICCMPGateway _gateway)
         external
         whenNotPaused
@@ -236,15 +361,6 @@ contract CCMPGateway is
     {
         gateways[_chainId] = _gateway;
         emit GatewayUpdated(_chainId, _gateway);
-    }
-
-    function setCCMPExecutor(ICCMPExecutor _executor)
-        external
-        whenNotPaused
-        onlyOwner
-    {
-        ccmpExecutor = _executor;
-        emit CCMPExecutorUpdated(address(_executor));
     }
 
     function setRouterAdaptor(string calldata name, ICCMPRouterAdaptor adaptor)
