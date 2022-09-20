@@ -24,21 +24,26 @@ error WrongDestination(
     uint256 destinationChainId,
     ICCMPGateway destinationGateway
 );
+
+// Execution
 error AlreadyExecuted(uint256 nonce);
 error VerificationFailed(string reason);
-error AmountIsZero();
-error NativeAmountMismatch();
 error ExternalCallFailed(
     uint256 index,
     address contractAddress,
     bytes returndata
 );
+
+// Fee
+error AmountIsZero();
+error NativeAmountMismatch();
 error AmountExceedsBalance(uint256 _amount, uint256 balance);
 error InsufficientNativeAmount(uint256 requiredAmount, uint256 actualAmount);
 
 /// @title CCMPGateway
 /// @author ankur@biconomy.io
 /// @notice The CCMP Gateway acts as the entrypoint to the CCMP system for the users as well as relayers.
+///         Manages sending, receiving and execution of messages, and fee.
 contract CCMPGateway is
     Initializable,
     OwnableUpgradeable,

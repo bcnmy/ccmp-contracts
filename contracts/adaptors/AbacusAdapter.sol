@@ -3,10 +3,10 @@ pragma solidity 0.8.16;
 
 import {AbacusConnectionClient} from "@abacus-network/app/contracts/AbacusConnectionClient.sol";
 import {IMessageRecipient} from "@abacus-network/core/interfaces/IMessageRecipient.sol";
-import "./interfaces/IAxelarGateway.sol";
-import "./structures/CrossChainMessage.sol";
+import "../interfaces/IAxelarGateway.sol";
+import "../structures/CrossChainMessage.sol";
 
-import "./CCMPAdaptor.sol";
+import "./CCMPAdaptorBase.sol";
 
 error AbacusAdapterDestinationChainUnsupported(uint256 chainId);
 
@@ -15,7 +15,7 @@ error AbacusAdapterDestinationChainUnsupported(uint256 chainId);
 /// @notice Adaptor for the abacus protocol into the CCMP System
 contract AbacusAdapter is
     AbacusConnectionClient,
-    CCMPAdaptor,
+    CCMPAdaptorBase,
     IMessageRecipient
 {
     using CCMPMessageUtils for CCMPMessage;
@@ -118,7 +118,7 @@ contract AbacusAdapter is
         internal
         view
         virtual
-        override(ContextUpgradeable, CCMPAdaptor)
+        override(ContextUpgradeable, CCMPAdaptorBase)
         returns (address sender)
     {
         return super._msgSender();
@@ -128,7 +128,7 @@ contract AbacusAdapter is
         internal
         view
         virtual
-        override(ContextUpgradeable, CCMPAdaptor)
+        override(ContextUpgradeable, CCMPAdaptorBase)
         returns (bytes calldata)
     {
         return super._msgData();

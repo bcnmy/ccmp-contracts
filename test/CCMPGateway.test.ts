@@ -17,8 +17,6 @@ import {
   IAxelarGateway,
   IAxelarGateway__factory,
   MockWormhole,
-  IHyphenLiquidityPool,
-  IHyphenLiquidityPool__factory,
   ERC20Token,
   SampleContract__factory,
 } from "../typechain-types";

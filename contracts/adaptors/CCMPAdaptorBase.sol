@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import "./interfaces/ICCMPRouterAdaptor.sol";
-import "./interfaces/IAxelarGateway.sol";
-import "./interfaces/ICCMPGateway.sol";
-import "./metatx/ERC2771ContextUpgradeable.sol";
-import "./structures/CrossChainMessage.sol";
-import "./security/Pausable.sol";
+import "../interfaces/ICCMPRouterAdaptor.sol";
+import "../interfaces/IAxelarGateway.sol";
+import "../interfaces/ICCMPGateway.sol";
+import "../metatx/ERC2771ContextUpgradeable.sol";
+import "../structures/CrossChainMessage.sol";
+import "../security/Pausable.sol";
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -15,7 +15,10 @@ import "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 
 error CallerIsNotCCMPGateway();
 
-abstract contract CCMPAdaptor is
+/// @title CCMPAdaptorBase
+/// @author ankur@biconomy.io
+/// @notice Base contract for all CCMP Adaptors
+abstract contract CCMPAdaptorBase is
     Initializable,
     OwnableUpgradeable,
     ReentrancyGuardUpgradeable,

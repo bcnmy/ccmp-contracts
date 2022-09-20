@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import "./interfaces/IAxelarGateway.sol";
-import "./structures/CrossChainMessage.sol";
+import "../interfaces/IAxelarGateway.sol";
+import "../structures/CrossChainMessage.sol";
 
-import "./CCMPAdaptor.sol";
+import "./CCMPAdaptorBase.sol";
 
 error AxelarAdaptorSourceChainNotSupported(uint256 chainId);
 error AxelarAdaptorDestinationChainNotSupported(uint256 chainId);
@@ -12,7 +12,7 @@ error AxelarAdaptorDestinationChainNotSupported(uint256 chainId);
 /// @title Axelar Adaptor
 /// @author ankur@biconomy.io
 /// @notice Adaptor for the Axelar protocol into the CCMP System
-contract AxelarAdaptor is CCMPAdaptor {
+contract AxelarAdaptor is CCMPAdaptorBase {
     using CCMPMessageUtils for CCMPMessage;
 
     mapping(uint256 => string) public destinationChainIdToName;
