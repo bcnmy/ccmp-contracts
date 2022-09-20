@@ -211,7 +211,7 @@ contract CCMPGateway is
     function receiveMessage(
         CCMPMessage calldata _message,
         bytes calldata _verificationData
-    ) external whenNotPaused returns (bool) {
+    ) external whenNotPaused nonReentrant returns (bool) {
         // Check Source
         if (_message.sourceGateway != gateways[_message.sourceChainId]) {
             revert InvalidSource(
@@ -282,26 +282,30 @@ contract CCMPGateway is
         uint256 length = _message.payload.length;
 
         for (uint256 i = 0; i < length; ) {
-            _handleContractCall(_message.payload[i], i);
+            CCMPMessagePayload memory _payload = _message.payload[i];
+
+            (bool success, bytes memory returndata) = _payload.to.call{
+                gas: gasleft()
+            }(
+                // Append sender and source chain id to the calldata
+                // This can be used in the target contract for verification
+                abi.encodePacked(
+                    _payload._calldata,
+                    _message.sourceChainId,
+                    _message.sender
+                )
+            );
+
+            if (!success) {
+                revert ExternalCallFailed(i, _payload.to, returndata);
+            }
+
+            emit CCMPPayloadExecuted(i, _payload.to, returndata);
+
             unchecked {
                 ++i;
             }
         }
-    }
-
-    function _handleContractCall(
-        CCMPMessagePayload calldata _payload,
-        uint256 _index
-    ) internal {
-        (bool success, bytes memory returndata) = _payload.to.call{
-            gas: gasleft()
-        }(_payload._calldata);
-
-        if (!success) {
-            revert ExternalCallFailed(_index, _payload.to, returndata);
-        }
-
-        emit CCMPPayloadExecuted(_index, _payload.to, returndata);
     }
 
     /// @notice Handles fee payment

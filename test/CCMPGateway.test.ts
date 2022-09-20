@@ -44,6 +44,8 @@ describe("CCMPGateway", async function () {
   const abiCoder = new ethers.utils.AbiCoder();
 
   const getSampleCalldata = (message: string) => SampleContract.interface.encodeFunctionData("emitEvent", [message]);
+  const getSampleCalldataWithValidation = (message: string) =>
+    SampleContract.interface.encodeFunctionData("emitWithValidation", [message]);
 
   beforeEach(async function () {
     [owner, alice, bob, charlie, trustedForwarder, pauser] = await ethers.getSigners();
@@ -65,7 +67,9 @@ describe("CCMPGateway", async function () {
       trustedForwarder.address,
       pauser.address,
     ])) as WormholeAdaptor;
-    SampleContract = (await (await ethers.getContractFactory("SampleContract")).deploy()) as SampleContract;
+    SampleContract = (await (
+      await ethers.getContractFactory("SampleContract")
+    ).deploy(CCMPGateway.address)) as SampleContract;
     SampleContractMock = await smock.fake(SampleContract__factory.abi);
     CCMPHelper = (await (await ethers.getContractFactory("CCMPHelper")).deploy()) as CCMPHelper;
     Token = (await upgrades.deployProxy(await ethers.getContractFactory("ERC20Token"), [
@@ -648,6 +652,39 @@ describe("CCMPGateway", async function () {
       await expect(CCMPGateway.receiveMessage(message, emptyBytes))
         .to.be.revertedWithCustomError(CCMPGateway, "ExternalCallFailed")
         .withArgs(0, SampleContractMock.address, "0x");
+    });
+
+    it("Should emit valid origin details", async function () {
+      const payload: CCMPMessagePayloadStruct = {
+        to: SampleContract.address,
+        _calldata: getSampleCalldataWithValidation("Hello World"),
+      };
+
+      message.payload = [payload];
+      const messageHash = await CCMPHelper.hash(message);
+      await MockWormholeGateway.setValidationState(true);
+      await MockWormholeGateway.setPayload(messageHash);
+
+      await expect(CCMPGateway.receiveMessage(message, emptyBytes))
+        .to.emit(SampleContract, "SampleEventExtended")
+        .withArgs("Hello World", 1, owner.address);
+    });
+
+    it("Should revert if message is executed from a contract other than Gateway", async function () {
+      const payload: CCMPMessagePayloadStruct = {
+        to: SampleContract.address,
+        _calldata: getSampleCalldataWithValidation("Hello World"),
+      };
+
+      message.payload = [payload];
+      const messageHash = await CCMPHelper.hash(message);
+      await MockWormholeGateway.setValidationState(true);
+      await MockWormholeGateway.setPayload(messageHash);
+
+      await expect(SampleContract.emitWithValidation("Hello World")).to.be.revertedWithCustomError(
+        SampleContract,
+        "InvalidOrigin"
+      );
     });
   });
 });
