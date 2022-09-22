@@ -4,13 +4,13 @@ pragma solidity 0.8.16;
 error InvalidOrigin();
 
 abstract contract CCMPReceiverBase {
-    event CCMPGatewayUpdated(address indexed newCCMPGateway);
+    event CCMPExecutor(address indexed);
 
-    address private _ccmpGateway;
+    address private _ccmpExecutor;
 
-    function _setCCMPGateway(address _newCCMPGateway) internal {
-        _ccmpGateway = _newCCMPGateway;
-        emit CCMPGatewayUpdated(_newCCMPGateway);
+    function _setCCMPExecutor(address _newCCMPExecutor) internal {
+        _ccmpExecutor = _newCCMPExecutor;
+        emit CCMPExecutor(_newCCMPExecutor);
     }
 
     function _ccmpMsgOrigin()
@@ -19,7 +19,7 @@ abstract contract CCMPReceiverBase {
         virtual
         returns (address sourceChainSender, uint256 sourceChainId)
     {
-        if (msg.sender != _ccmpGateway) {
+        if (msg.sender != _ccmpExecutor) {
             revert InvalidOrigin();
         }
 

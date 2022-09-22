@@ -3,6 +3,7 @@ pragma solidity 0.8.16;
 
 import "./interfaces/ICCMPGateway.sol";
 import "./interfaces/ICCMPRouterAdaptor.sol";
+import "./interfaces/ICCMPExecutor.sol";
 import "./structures/CrossChainMessage.sol";
 import "./security/Pausable.sol";
 import "./metatx/ERC2771ContextUpgradeable.sol";
@@ -73,10 +74,13 @@ contract CCMPGateway is
     // Relayer => Token Address => Fee
     mapping(address => mapping(address => uint256)) public relayerFeeBalance;
 
+    ICCMPExecutor public ccmpExecutor;
+
     event GatewayUpdated(
         uint256 indexed destinationChainId,
         ICCMPGateway indexed gateway
     );
+    event CCMPExecutorUpdated(ICCMPExecutor indexed _ccmpExecutor);
     event AdaptorUpdated(string indexed adaptorName, address indexed adaptor);
     event CCMPMessageExecuted(
         bytes32 indexed hash,
@@ -284,9 +288,8 @@ contract CCMPGateway is
         for (uint256 i = 0; i < length; ) {
             CCMPMessagePayload memory _payload = _message.payload[i];
 
-            (bool success, bytes memory returndata) = _payload.to.call{
-                gas: gasleft()
-            }(
+            (bool success, bytes memory returndata) = ccmpExecutor.execute(
+                _payload.to,
                 // Append sender and source chain id to the calldata
                 // This can be used in the target contract for verification
                 abi.encodePacked(
@@ -365,7 +368,6 @@ contract CCMPGateway is
 
     function setGateway(uint256 _chainId, ICCMPGateway _gateway)
         external
-        whenNotPaused
         onlyOwner
     {
         gateways[_chainId] = _gateway;
@@ -374,11 +376,15 @@ contract CCMPGateway is
 
     function setRouterAdaptor(string calldata name, ICCMPRouterAdaptor adaptor)
         external
-        whenNotPaused
         onlyOwner
     {
         adaptors[name] = adaptor;
         emit AdaptorUpdated(name, address(adaptor));
+    }
+
+    function setCCMPExecutor(ICCMPExecutor _ccmpExecutor) external onlyOwner {
+        ccmpExecutor = _ccmpExecutor;
+        emit CCMPExecutorUpdated(_ccmpExecutor);
     }
 
     function _msgSender()

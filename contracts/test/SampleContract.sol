@@ -7,7 +7,7 @@ contract SampleContract is CCMPReceiver {
     event SampleEvent(string);
     event SampleEventExtended(string, uint256, address);
 
-    constructor(address ccmpGateway) CCMPReceiver(ccmpGateway) {}
+    constructor(address ccmpExecutor) CCMPReceiver(ccmpExecutor) {}
 
     function emitEvent(string calldata data) external {
         emit SampleEvent(data);
