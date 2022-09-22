@@ -1,5 +1,5 @@
 import { ethers, upgrades } from "hardhat";
-import { CCMPGateway, AxelarAdaptor, WormholeAdaptor, SampleContract } from "../../typechain-types";
+import { CCMPGateway, AxelarAdaptor, WormholeAdaptor, SampleContract, CCMPExecutor } from "../../typechain-types";
 
 const AxelarAdaptorKey = "axelar";
 const WormholeAdaptorKey = "wormhole";
@@ -10,13 +10,13 @@ export type DeployParams = {
   owner: string;
   pauser: string;
   trustedForwarder: string;
-  liquidityPool: string;
   axelarGateway?: string;
   wormholeGateway?: string;
 };
 
 export type CCMPContracts = {
   CCMPGateway: CCMPGateway;
+  CCMPExecutor: CCMPExecutor;
   AxelarAdaptor?: AxelarAdaptor;
   WormholeAdaptor?: WormholeAdaptor;
 };
@@ -25,7 +25,6 @@ export const deploy = async ({
   owner,
   pauser,
   trustedForwarder,
-  liquidityPool,
   axelarGateway,
   wormholeGateway,
 }: DeployParams): Promise<CCMPContracts> => {
@@ -40,15 +39,21 @@ export const deploy = async ({
   console.log(`CCMPGateway: ${CCMPGateway.address}`);
   await waitSec(5);
 
+  const CCMPExecutor = (await upgrades.deployProxy(await ethers.getContractFactory("CCMPExecutor"), [
+    CCMPGateway.address,
+  ])) as CCMPExecutor;
+  console.log(`CCMPExecutor: ${CCMPExecutor.address}`);
+
   let AxelarAdaptor;
   if (axelarGateway) {
     console.log(`Deploying AxelarAdaptor...`);
-    AxelarAdaptor = (await upgrades.deployProxy(await ethers.getContractFactory("AxelarAdaptor"), [
-      axelarGateway,
-      CCMPGateway.address,
-      trustedForwarder,
-      pauser,
-    ])) as AxelarAdaptor;
+    AxelarAdaptor = (await upgrades.deployProxy(
+      await ethers.getContractFactory("AxelarAdaptor"),
+      [axelarGateway, CCMPGateway.address, trustedForwarder, pauser],
+      {
+        timeout: 1000000,
+      }
+    )) as AxelarAdaptor;
     console.log(`AxelarAdaptor: ${AxelarAdaptor.address}`);
     await waitSec(5);
   }
@@ -56,18 +61,20 @@ export const deploy = async ({
   let WormholeAdaptor;
   if (wormholeGateway) {
     console.log(`Deploying WormholeAdaptor...`);
-    WormholeAdaptor = (await upgrades.deployProxy(await ethers.getContractFactory("WormholeAdaptor"), [
-      wormholeGateway,
-      CCMPGateway.address,
-      trustedForwarder,
-      pauser,
-    ])) as WormholeAdaptor;
+    WormholeAdaptor = (await upgrades.deployProxy(
+      await ethers.getContractFactory("WormholeAdaptor"),
+      [wormholeGateway, CCMPGateway.address, trustedForwarder, pauser],
+      {
+        timeout: 1000000,
+      }
+    )) as WormholeAdaptor;
     console.log(`WormholeAdaptor: ${WormholeAdaptor.address}`);
     await waitSec(5);
   }
 
   const contracts: CCMPContracts = {
     CCMPGateway,
+    CCMPExecutor,
     AxelarAdaptor,
     WormholeAdaptor,
   };
@@ -79,9 +86,11 @@ export const deploy = async ({
   return contracts;
 };
 
-export const deploySampleContract = async (): Promise<SampleContract> => {
+export const deploySampleContract = async (ccmpExecutor: string): Promise<SampleContract> => {
   console.log(`Deploying SampleContract...`);
-  const SampleContract = (await (await ethers.getContractFactory("SampleContract")).deploy()) as SampleContract;
+  const SampleContract = (await (
+    await ethers.getContractFactory("SampleContract")
+  ).deploy(ccmpExecutor)) as SampleContract;
   console.log(`SampleContract: ${SampleContract.address}`);
   return SampleContract;
 };
@@ -106,5 +115,7 @@ const configure = async (contracts: CCMPContracts) => {
     await (await contracts.CCMPGateway.setRouterAdaptor(WormholeAdaptorKey, contracts.WormholeAdaptor.address)).wait();
     await waitSec(5);
   }
+  await contracts.CCMPGateway.setCCMPExecutor(contracts.CCMPExecutor.address);
+  await waitSec(5);
   console.log(`CCMPGateway configured.`);
 };

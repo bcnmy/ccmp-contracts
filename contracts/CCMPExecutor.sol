@@ -27,6 +27,7 @@ contract CCMPExecutor is Initializable, OwnableUpgradeable {
     }
 
     function initialize(address __ccmpGateway) external initializer {
+        __Ownable_init();
         _ccmpGateway = __ccmpGateway;
     }
 
