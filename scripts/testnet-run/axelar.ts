@@ -3,16 +3,35 @@ import { CCMPGateway__factory } from "../../typechain-types";
 import { SampleContract__factory } from "../../typechain-types";
 import { AxelarGMPRecoveryAPI, Environment, GatewayTx } from "@axelar-network/axelarjs-sdk";
 import { GMPStatus } from "@axelar-network/axelarjs-sdk/dist/src/libs/TransactionRecoveryApi/AxelarRecoveryApi";
-import { CCMPMessageStruct } from "../../typechain-types/contracts/AxelarAdaptor";
+import type { CCMPMessageStruct } from "../../typechain-types/contracts/CCMPGateway";
 import { getCCMPMessagePayloadFromSourceTx } from "./utils";
 
-const gatewayFuji = "0xe73B00374b9B1dc3831ef7F3Fc389A485d4eDd92";
-const axelarAdatorFuji = "0x7db0c0244CB14960e4628cA855A5ce6c6F6C3475";
-const sampleContractFuji = "0x2761B67709aB1cdedE276314bD322a113d6858B5";
+/**
+ * Fantom Testnet
+ * Contracts: 
+   CCMPGateway: 0xaA02b9E819321838c932B0eD3e1dBE75F0CFAD5a
+   CCMPExecutor: 0x4bc978BDA72711fb1b10a2D990768cc08ad91253
+   AxelarAdaptor: 0x4F93dBD44B74B5f401AFeB934DD6210204875796
+   WormholeAdaptor: 0x2b7F95cb023a8346a57993B9585a524cbD485f91
+   sampleContract: 0x882a62Cfc40D191b5F32ab8C42FFac6393Cf298f
+ */
 
-const gatewayMumbai = "0x4a69Eb6f8e590A2a5AC31Ee57F9Ed1A5f7ea72E2";
-const sampleContractMumbai = "0x6eDA69DFd55F23Ee20ca1575CC79Aa79Ce453eBb";
-const axelarAdaptorMumbai = "0xd4835D316252D66A85a0B7e919dB03538a84E17e";
+/**
+ * Polygon Testnet:
+ * Contracts: 
+   CCMPGateway: 0xdB44222Ca41a66F334201d9716D5472742913fE4
+   CCMPExecutor: 0xbf6Fa3c4aF92cdA0125320855412d48d304E26c2
+   WormholeAdaptor: 0x30AAf26d3ebe9ba1510707c89e510c1fffd5d2B3
+   Axelar Adaptor: 0x8Cf61439Cb1d9468a4Bf37BA57A048eC1dA475A1
+   sampleContract: 0x50216dD1B7B9D4F8ccdA2d122678E7a58F69D56d
+ */
+const gatewayFantom = "0xaA02b9E819321838c932B0eD3e1dBE75F0CFAD5a";
+const axelarAdatorFantom = "0x4F93dBD44B74B5f401AFeB934DD6210204875796";
+const sampleContractFantom = "0x882a62Cfc40D191b5F32ab8C42FFac6393Cf298f";
+
+const gatewayMumbai = "0xdB44222Ca41a66F334201d9716D5472742913fE4";
+const sampleContractMumbai = "0x50216dD1B7B9D4F8ccdA2d122678E7a58F69D56d";
+const axelarAdaptorMumbai = "0x8Cf61439Cb1d9468a4Bf37BA57A048eC1dA475A1";
 
 const sdk = new AxelarGMPRecoveryAPI({
   environment: Environment.TESTNET,
@@ -20,13 +39,13 @@ const sdk = new AxelarGMPRecoveryAPI({
 
 const abiCoder = new ethers.utils.AbiCoder();
 
-const waitUntilTxStatus = async (txHash: string, expectedStatus: GMPStatus) => {
+const waitUntilTxStatus = async (txHash: string, expectedStatus: GMPStatus[]) => {
   await new Promise<void>((resolve, reject) => {
     const interval = setInterval(async () => {
       try {
         const status = await sdk.queryTransactionStatus(txHash);
         console.log(`Status of Transaction Hash ${txHash}: ${status.status}`);
-        if (status.status === expectedStatus) {
+        if (expectedStatus.includes(status.status)) {
           console.log(`Transaction Hash ${txHash}: ${expectedStatus}`);
           clearInterval(interval);
           resolve();
@@ -47,7 +66,7 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
     const { commandId } = (await sdk.queryExecuteParams(txHash)).data;
     const { hash, wait } = await gateway.receiveMessage(
       message,
-      abiCoder.encode(["bytes32", "string"], [commandId, ethers.utils.getAddress(axelarAdatorFuji)]),
+      abiCoder.encode(["bytes32", "string"], [commandId, ethers.utils.getAddress(axelarAdatorFantom)]),
       {
         gasPrice: ethers.utils.parseUnits("50", "gwei"),
       }
@@ -70,13 +89,13 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
 (async () => {
   const [signer] = await ethers.getSigners();
   const networkId = (await ethers.provider.getNetwork()).chainId;
-  if (networkId != 43113) {
-    throw new Error("Run script on fuji");
+  if (networkId != 4002) {
+    throw new Error("Run script on fantom testnet");
   }
 
-  const gateway = CCMPGateway__factory.connect(gatewayFuji, signer);
+  const gateway = CCMPGateway__factory.connect(gatewayFantom, signer);
 
-  const sampleContract = SampleContract__factory.connect(sampleContractFuji, signer);
+  const sampleContract = SampleContract__factory.connect(sampleContractFantom, signer);
   const calldata = sampleContract.interface.encodeFunctionData("emitEvent", ["Hello World"]);
 
   try {
@@ -95,12 +114,12 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
         {
           to: sampleContractMumbai,
           _calldata: calldata,
-        }
+        },
       ],
       {
         feeTokenAddress: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
         feeAmount: 0,
-        relayer: gatewayFuji,
+        relayer: gatewayFantom,
       },
       abiCoder.encode(["string"], [axelarAdaptorMumbai])
     );
@@ -111,7 +130,7 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
     const ccmpMessage = await getCCMPMessagePayloadFromSourceTx(hash);
     console.log(ccmpMessage);
 
-    await waitUntilTxStatus(hash, GMPStatus.DEST_GATEWAY_APPROVED);
+    await waitUntilTxStatus(hash, [GMPStatus.DEST_EXECUTE_ERROR, GMPStatus.UNKNOWN_ERROR]);
 
     await executeApprovedTransaction(hash, ccmpMessage);
   } catch (e) {

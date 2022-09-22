@@ -10,7 +10,8 @@ import type { CCMPMessageStruct } from "../../typechain-types/contracts/CCMPGate
  * Contracts: 
    CCMPGateway: 0xdB44222Ca41a66F334201d9716D5472742913fE4
    CCMPExecutor: 0xbf6Fa3c4aF92cdA0125320855412d48d304E26c2
-   WormholeAdaptor: 0xc919F44ff2ddBcD47cD8a3596dD8009f80Dbbb88
+   WormholeAdaptor: 0x30AAf26d3ebe9ba1510707c89e510c1fffd5d2B3
+   Axelar Adaptor: 0x8Cf61439Cb1d9468a4Bf37BA57A048eC1dA475A1
    sampleContract: 0x50216dD1B7B9D4F8ccdA2d122678E7a58F69D56d
  */
 
@@ -39,7 +40,7 @@ const wormholeRpcHost = "https://wormhole-v2-testnet-api.certus.one";
 
 const abiCoder = new ethers.utils.AbiCoder();
 
-const CONSISTENCY_LEVEL = 1;
+const CONSISTENCY_LEVEL = 15;
 
 const getVaa = async (sourceTxHash: string): Promise<Uint8Array> => {
   const emitter = getEmitterAddressEth(wormholeAdapterGoerli);

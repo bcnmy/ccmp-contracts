@@ -124,4 +124,12 @@ contract AxelarAdaptor is CCMPAdaptorBase {
             _destinationChainName
         );
     }
+
+    // Required by Axelar, not used
+    function execute(
+        bytes32,
+        string calldata,
+        string calldata,
+        bytes calldata
+    ) external pure {}
 }
