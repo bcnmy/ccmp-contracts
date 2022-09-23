@@ -15,7 +15,8 @@ interface ICCMPGateway {
 
     function receiveMessage(
         CCMPMessage calldata _message,
-        bytes calldata _verificationData
+        bytes calldata _verificationData,
+        bool _allowPartialCompletion
     ) external returns (bool received);
 
     function setRouterAdaptor(string calldata name, ICCMPRouterAdaptor adaptor)

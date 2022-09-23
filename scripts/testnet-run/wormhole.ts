@@ -40,7 +40,7 @@ const wormholeRpcHost = "https://wormhole-v2-testnet-api.certus.one";
 
 const abiCoder = new ethers.utils.AbiCoder();
 
-const CONSISTENCY_LEVEL = 15;
+const CONSISTENCY_LEVEL = 1;
 
 const getVaa = async (sourceTxHash: string): Promise<Uint8Array> => {
   const emitter = getEmitterAddressEth(wormholeAdapterGoerli);

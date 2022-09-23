@@ -6,7 +6,7 @@ error InvalidOrigin();
 abstract contract CCMPReceiverBase {
     event CCMPExecutor(address indexed);
 
-    address private _ccmpExecutor;
+    address internal _ccmpExecutor;
 
     function _setCCMPExecutor(address _newCCMPExecutor) internal {
         _ccmpExecutor = _newCCMPExecutor;

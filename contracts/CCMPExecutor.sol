@@ -3,13 +3,14 @@ pragma solidity 0.8.16;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "./interfaces/ICCMPExecutor.sol";
 
 error InvalidSender();
 
 /// @title CCMPExecutor
 /// @author ankur@biconomy.io
 /// @notice Handles message execution
-contract CCMPExecutor is Initializable, OwnableUpgradeable {
+contract CCMPExecutor is Initializable, OwnableUpgradeable, ICCMPExecutor {
     address public _ccmpGateway;
 
     event GatewayUpgraded(address indexed newGateway);

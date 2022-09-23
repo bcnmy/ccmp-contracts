@@ -72,7 +72,7 @@ contract WormholeAdaptor is CCMPAdaptorBase {
 
         return (
             keccak256(vm.payload) == keccak256(abi.encode(_ccmpMessage.hash())),
-            ""
+            "ERR_PAYLOAD_MISMATCH"
         );
     }
 }

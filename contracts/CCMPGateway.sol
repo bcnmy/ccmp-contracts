@@ -1,3 +1,5 @@
+// TODO: Diamondify
+
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
@@ -38,6 +40,7 @@ error ExternalCallFailed(
 // Fee
 error AmountIsZero();
 error NativeAmountMismatch();
+error NativeTransferFailed(address relayer, bytes data);
 error AmountExceedsBalance(uint256 _amount, uint256 balance);
 error InsufficientNativeAmount(uint256 requiredAmount, uint256 actualAmount);
 
@@ -70,9 +73,6 @@ contract CCMPGateway is
 
     // Whether a message with nonce N has been executed or not
     mapping(uint256 => bool) public nonceUsed;
-
-    // Relayer => Token Address => Fee
-    mapping(address => mapping(address => uint256)) public relayerFeeBalance;
 
     ICCMPExecutor public ccmpExecutor;
 
@@ -111,6 +111,7 @@ contract CCMPGateway is
     event CCMPPayloadExecuted(
         uint256 indexed index,
         address indexed contractAddress,
+        bool success,
         bytes returndata
     );
     event FeePaid(
@@ -211,10 +212,12 @@ contract CCMPGateway is
     /// @notice Function called by the relayer on the destination chain to execute the sent message on the exit chain.
     /// @param _message The message to be executed.
     /// @param _verificationData Adaptor specific abi-encoded data required to verify the message's validity on the exit chain. For example, commandId for Axelar.
+    /// @param _allowPartialExecution Whether to allow partial execution of the message.
     /// @return status The status of the execution.
     function receiveMessage(
         CCMPMessage calldata _message,
-        bytes calldata _verificationData
+        bytes calldata _verificationData,
+        bool _allowPartialExecution
     ) external whenNotPaused nonReentrant returns (bool) {
         // Check Source
         if (_message.sourceGateway != gateways[_message.sourceChainId]) {
@@ -257,7 +260,7 @@ contract CCMPGateway is
             }
         }
 
-        _executeCCMPMessage(_message);
+        _executeCCMPMessage(_message, _allowPartialExecution);
 
         emit CCMPMessageExecuted(
             _message.hash(),
@@ -278,10 +281,11 @@ contract CCMPGateway is
 
     /// @notice Handles Execution of the received message from CCMP Gateway on destination chain.
     /// @param _message The message received from CCMP Gateway.
-    function _executeCCMPMessage(CCMPMessage calldata _message)
-        internal
-        whenNotPaused
-    {
+    /// @param _allowPartialExecution Whether to allow partial execution of the message.
+    function _executeCCMPMessage(
+        CCMPMessage calldata _message,
+        bool _allowPartialExecution
+    ) internal whenNotPaused {
         // Execute CCMP Message Content
         uint256 length = _message.payload.length;
 
@@ -299,11 +303,11 @@ contract CCMPGateway is
                 )
             );
 
-            if (!success) {
+            if (_allowPartialExecution && !success) {
                 revert ExternalCallFailed(i, _payload.to, returndata);
             }
 
-            emit CCMPPayloadExecuted(i, _payload.to, returndata);
+            emit CCMPPayloadExecuted(i, _payload.to, success, returndata);
 
             unchecked {
                 ++i;
@@ -322,48 +326,23 @@ contract CCMPGateway is
                 if (msg.value != feeAmount) {
                     revert NativeAmountMismatch();
                 }
+                (bool success, bytes memory returndata) = relayer.call{
+                    value: msg.value
+                }("");
+                if (!success) {
+                    revert NativeTransferFailed(relayer, returndata);
+                }
             } else {
                 IERC20Upgradeable(_message.gasFeePaymentArgs.feeTokenAddress)
                     .safeTransferFrom(
                         _message.sender,
-                        address(this),
+                        relayer,
                         _message.gasFeePaymentArgs.feeAmount
                     );
             }
-            relayerFeeBalance[relayer][tokenAddress] += feeAmount;
         }
 
         emit FeePaid(tokenAddress, feeAmount, relayer);
-    }
-
-    /// @notice Allows relayers to claim the fee for message on the source chain.
-    /// @param _tokenAddress The token address for which the fee is claimed.
-    /// @param _amount The amount of fee to be claimed.
-    /// @param _to The address to which the fee is claimed.
-    function withdrawFee(
-        address _tokenAddress,
-        uint256 _amount,
-        address _to
-    ) external nonReentrant whenNotPaused {
-        uint256 balance = relayerFeeBalance[_msgSender()][_tokenAddress];
-        if (_amount > balance) {
-            revert AmountExceedsBalance(_amount, balance);
-        }
-
-        if (_tokenAddress == NATIVE_ADDRESS) {
-            (bool success, bytes memory returndata) = _to.call{value: _amount}(
-                ""
-            );
-            if (!success) {
-                revert ExternalCallFailed(0, _to, returndata);
-            }
-        } else {
-            IERC20Upgradeable(_tokenAddress).safeTransfer(_to, _amount);
-        }
-
-        relayerFeeBalance[msg.sender][_tokenAddress] -= _amount;
-
-        emit FeeWithdrawn(_tokenAddress, _amount, msg.sender, _to);
     }
 
     function setGateway(uint256 _chainId, ICCMPGateway _gateway)
