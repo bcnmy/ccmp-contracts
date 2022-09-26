@@ -27,7 +27,6 @@ import {
   CCMPHelper__factory,
   ERC20Token__factory,
   MockWormhole__factory,
-  LibDiamond__factory,
 } from "../typechain-types";
 import { deployGateway } from "../scripts/deploy/deploy";
 
@@ -65,7 +64,7 @@ describe("CCMPGateway", async function () {
 
     MockWormholeGateway = await new MockWormhole__factory(owner).deploy();
 
-    const { Diamond } = await deployGateway();
+    const { Diamond } = await deployGateway(pauser.address);
     CCMPGateway = ICCMPGateway__factory.connect(Diamond.address, owner);
 
     CCMPExecutor = await new CCMPExecutor__factory(owner).deploy(CCMPGateway.address);
@@ -113,6 +112,25 @@ describe("CCMPGateway", async function () {
 
   it("Should prevent non owners from setting adaptors", async function () {
     await expect(CCMPGateway.connect(alice).setRouterAdaptor("wormhole", WormholeAdaptor.address)).to.be.reverted;
+  });
+
+  it("Should prevent non owners from changing pauser", async function () {
+    await expect(CCMPGateway.connect(alice).setPauser(bob.address)).to.be.reverted;
+  });
+
+  it("Should allow owner to change pauser", async function () {
+    await expect(CCMPGateway.setPauser(bob.address)).emit(CCMPGateway, "PauserUpdated").withArgs(bob.address);
+    expect(await CCMPGateway.pauser()).to.equal(bob.address);
+  });
+
+  it("Should allow pauser to pause and unpause", async function () {
+    await expect(CCMPGateway.connect(pauser).pause()).to.emit(CCMPGateway, "ContractPaused");
+    await expect(CCMPGateway.connect(pauser).unpause()).to.emit(CCMPGateway, "ContractUnpaused");
+  });
+
+  it("Should prevent non pauser from pausing or unpausing", async function () {
+    await expect(CCMPGateway.pause()).to.be.reverted;
+    await expect(CCMPGateway.unpause()).to.be.reverted;
   });
 
   it("Should set gateways correctly", async function () {
@@ -207,6 +225,25 @@ describe("CCMPGateway", async function () {
       )
         .to.be.revertedWithCustomError(CCMPGateway, "InvalidPayload")
         .withArgs("No payload");
+    });
+
+    it("Should revert if contract is paused", async function () {
+      await CCMPGateway.connect(pauser).pause();
+
+      const chainId = (await ethers.provider.getNetwork()).chainId;
+      await CCMPGateway.setRouterAdaptor("axelar", AxelarAdaptor.address);
+      await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
+
+      await expect(
+        CCMPGateway.sendMessage(
+          chainId + 1,
+          "axelar",
+          payloads,
+          gasFeePaymentArgs,
+
+          abiCoder.encode(["string"], [ethers.constants.AddressZero])
+        )
+      ).to.be.reverted;
     });
 
     it("Should route payload if all checks are satisfied", async function () {
@@ -314,6 +351,17 @@ describe("CCMPGateway", async function () {
         CCMPGateway,
         "VerificationFailed"
       );
+    });
+
+    it("Should revert if contract is paused", async function () {
+      await CCMPGateway.connect(pauser).pause();
+
+      MockAxelarGateway.validateContractCall.returns(true);
+
+      await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
+      await CCMPGateway.setRouterAdaptor("axelar", AxelarAdaptor.address);
+
+      expect(CCMPGateway.receiveMessage(message, emptyBytes, false)).to.be.reverted;
     });
 
     it("Should execute message if all checks are satisfied", async function () {

@@ -26,6 +26,8 @@ contract CCMPReceiverMessageFacet is ICCMPGatewayReceiver, Constants {
         bytes calldata _verificationData,
         bool _allowPartialExecution
     ) external returns (bool) {
+        LibDiamond._enforceIsContractNotPaused();
+
         LibDiamond.CCMPDiamondStorage storage ds = LibDiamond._diamondStorage();
 
         // Check Source

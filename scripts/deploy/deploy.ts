@@ -26,6 +26,7 @@ import {
 } from "../../typechain-types";
 import { Contract } from "ethers";
 import { FacetCutAction, getSelectors } from "./utils";
+import { DiamondArgsStruct } from "../../typechain-types/contracts/gateway/Diamond";
 
 const AxelarAdaptorKey = "axelar";
 const WormholeAdaptorKey = "wormhole";
@@ -54,7 +55,7 @@ export type CCMPContracts = {
   WormholeAdaptor?: WormholeAdaptor;
 } & GatewayContracts;
 
-export const deployGateway = async (debug: boolean = false): Promise<GatewayContracts> => {
+export const deployGateway = async (pauser: string, debug: boolean = false): Promise<GatewayContracts> => {
   debug && console.log("Deploying CCMPGateway...");
   const [signer] = await ethers.getSigners();
 
@@ -111,8 +112,9 @@ export const deployGateway = async (debug: boolean = false): Promise<GatewayCont
   let functionCall = DiamondInit.interface.encodeFunctionData("init");
 
   // Setting arguments that will be used in the diamond constructor
-  const diamondArgs = {
+  const diamondArgs: DiamondArgsStruct = {
     owner: signer.address,
+    pauser,
     init: DiamondInit.address,
     initCalldata: functionCall,
   };
@@ -140,7 +142,7 @@ export const deploy = async (
   const [deployer] = await ethers.getSigners();
   debug && console.log(`Deployer: ${deployer.address}`);
 
-  const diamonds = await deployGateway(debug);
+  const diamonds = await deployGateway(pauser, debug);
 
   await waitSec(5);
 

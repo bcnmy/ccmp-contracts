@@ -1,5 +1,3 @@
-// TODO: Implement ReentrancyGuard, Pausibility
-
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
@@ -31,6 +29,8 @@ contract CCMPSendMessageFacet is ICCMPGatewaySender, Constants {
         GasFeePaymentArgs calldata _gasFeePaymentArgs,
         bytes calldata _routerArgs
     ) external payable returns (bool) {
+        LibDiamond._enforceIsContractNotPaused();
+
         LibDiamond.CCMPDiamondStorage storage ds = LibDiamond._diamondStorage();
 
         // Check Adaptor

@@ -105,6 +105,9 @@ interface ICCMPConfiguration {
     );
     event CCMPExecutorUpdated(ICCMPExecutor indexed _ccmpExecutor);
     event AdaptorUpdated(string indexed adaptorName, address indexed adaptor);
+    event ContractPaused();
+    event ContractUnpaused();
+    event PauserUpdated(address indexed pauser);
 
     // Functions
     function setGateway(uint256 _chainId, ICCMPGateway _gateway) external;
@@ -113,6 +116,8 @@ interface ICCMPConfiguration {
         external;
 
     function setCCMPExecutor(ICCMPExecutor _ccmpExecutor) external;
+
+    function setPauser(address _pauser) external;
 
     function gateway(uint256 _chainId)
         external
@@ -129,6 +134,12 @@ interface ICCMPConfiguration {
     function transferOwnership(address _newOwner) external;
 
     function owner() external view returns (address owner_);
+
+    function pauser() external view returns (address pauser_);
+
+    function pause() external;
+
+    function unpause() external;
 }
 
 interface ICCMPGateway is

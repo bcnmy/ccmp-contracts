@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity 0.8.16;
 
 /******************************************************************************\
 * Author: Nick Mudge <nick@perfectabstractions.com> (https://twitter.com/mudgen)
@@ -22,6 +22,7 @@ error FunctionNotFound(bytes4 _functionSelector);
 // this avoids stack too deep errors
 struct DiamondArgs {
     address owner;
+    address pauser;
     address init;
     bytes initCalldata;
 }
@@ -32,6 +33,7 @@ contract Diamond {
         DiamondArgs memory _args
     ) payable {
         LibDiamond._setContractOwner(_args.owner);
+        LibDiamond._setContractPauser(_args.pauser);
         LibDiamond._diamondCut(_diamondCut, _args.init, _args.initCalldata);
     }
 

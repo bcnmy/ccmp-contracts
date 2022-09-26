@@ -34,6 +34,8 @@ error InitializationFunctionReverted(
     address _initializationContractAddress,
     bytes _calldata
 );
+error ContractIsPaused();
+error NotContractPauser(address _user, address _contractPauser);
 
 library LibDiamond {
     bytes32 constant DIAMOND_STORAGE_POSITION =
@@ -62,6 +64,9 @@ library LibDiamond {
         mapping(uint256 => ICCMPGateway) gateways;
         // Whether a message with nonce N has been executed or not
         mapping(uint256 => bool) nonceUsed;
+        // Contract pausibility
+        address pauser;
+        bool paused;
     }
 
     event OwnershipTransferred(
@@ -86,6 +91,7 @@ library LibDiamond {
         }
     }
 
+    // Ownable
     function _setContractOwner(address _newOwner) internal {
         CCMPDiamondStorage storage ds = _diamondStorage();
         address previousOwner = ds.contractOwner;
@@ -104,6 +110,35 @@ library LibDiamond {
                 _diamondStorage().contractOwner
             );
         }
+    }
+
+    // Pauser
+    function _setContractPauser(address _newPauser) internal {
+        _diamondStorage().pauser = _newPauser;
+    }
+
+    function _contractPauser() internal view returns (address pauser_) {
+        pauser_ = _diamondStorage().pauser;
+    }
+
+    function _enforceIsContractNotPaused() internal view {
+        if (_diamondStorage().paused) {
+            revert ContractIsPaused();
+        }
+    }
+
+    function _enforceIsContractPauser() internal view {
+        if (msg.sender != _diamondStorage().pauser) {
+            revert NotContractPauser(msg.sender, _diamondStorage().pauser);
+        }
+    }
+
+    function _pauseContract() internal {
+        _diamondStorage().paused = true;
+    }
+
+    function _unpauseContract() internal {
+        _diamondStorage().paused = false;
     }
 
     // Internal function version of diamondCut

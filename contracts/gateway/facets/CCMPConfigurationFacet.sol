@@ -67,4 +67,26 @@ contract CCMPConfigurationFacet is IERC173, ICCMPConfiguration {
     function ccmpExecutor() external view returns (ICCMPExecutor executor) {
         executor = LibDiamond._diamondStorage().ccmpExecutor;
     }
+
+    function pauser() external view returns (address pauser_) {
+        pauser_ = LibDiamond._diamondStorage().pauser;
+    }
+
+    function setPauser(address _pauser) external {
+        LibDiamond._enforceIsContractOwner();
+        LibDiamond._diamondStorage().pauser = _pauser;
+        emit PauserUpdated(_pauser);
+    }
+
+    function pause() external {
+        LibDiamond._enforceIsContractPauser();
+        LibDiamond._pauseContract();
+        emit ContractPaused();
+    }
+
+    function unpause() external {
+        LibDiamond._enforceIsContractPauser();
+        LibDiamond._unpauseContract();
+        emit ContractUnpaused();
+    }
 }
