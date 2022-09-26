@@ -76,7 +76,8 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
   const gateway = CCMPGateway__factory.connect(gatewayMumbai, wallet);
   try {
     const { hash, wait } = await gateway.receiveMessage(message, vaa, {
-      // gasPrice: ethers.utils.parseUnits("50", "gwei"),
+      gasPrice: ethers.utils.parseUnits("50", "gwei"),
+      // gasLimit: 1000000,
     });
     console.log(`Submitted exit transaction ${hash} on exit chain.`);
     const { blockNumber } = await wait(5);
@@ -90,6 +91,7 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
     } else {
       console.log(JSON.stringify((e as any).error, null, 2));
     }
+    console.log(e);
   }
 };
 

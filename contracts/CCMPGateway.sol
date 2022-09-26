@@ -92,7 +92,7 @@ contract CCMPGateway is
         uint256 indexed destinationChainId,
         uint256 nonce,
         string routerAdaptor,
-        GasFeePaymentArgs args,
+        GasFeePaymentArgs gasFeePaymentArgs,
         CCMPMessagePayload[] payload
     );
     event CCMPMessageRouted(
@@ -212,7 +212,7 @@ contract CCMPGateway is
     /// @notice Function called by the relayer on the destination chain to execute the sent message on the exit chain.
     /// @param _message The message to be executed.
     /// @param _verificationData Adaptor specific abi-encoded data required to verify the message's validity on the exit chain. For example, commandId for Axelar.
-    /// @param _allowPartialExecution Whether to allow partial execution of the message.
+    // @param _allowPartialExecution Whether to allow partial execution of the message.
     /// @return status The status of the execution.
     function receiveMessage(
         CCMPMessage calldata _message,

@@ -46,10 +46,10 @@
     tslib "^2.3.0"
     zen-observable-ts "^1.2.5"
 
-"@axelar-network/axelarjs-sdk@^0.10.4-alpha.1":
-  version "0.10.4-alpha.1"
-  resolved "https://registry.yarnpkg.com/@axelar-network/axelarjs-sdk/-/axelarjs-sdk-0.10.4-alpha.1.tgz#30c4d184741cc5aeaec1458a09dc8202f3d742b5"
-  integrity sha512-MUgP5FDpL7NsdkkZ10BCFHbIoYS9sZP50xfTQxGaelc5lppRInm8vD192Z3Oh2kY89ASwiTq+ycurwXTI7qUXw==
+"@axelar-network/axelarjs-sdk@^0.11.4":
+  version "0.11.4"
+  resolved "https://registry.yarnpkg.com/@axelar-network/axelarjs-sdk/-/axelarjs-sdk-0.11.4.tgz#f1b1553a7a183df376795a839d38e2217c5f847d"
+  integrity sha512-vImsP190n5HSz5ixPApIc60LrQP7pErnJiT7NRSi2sz04Sf1M6fwo989/eGDxBnIGGXyCBz67wWGqBPNv8hKeQ==
   dependencies:
     "@axelar-network/axelarjs-types" "^0.24.0"
     "@cosmjs/stargate" "^0.28.4"

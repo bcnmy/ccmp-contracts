@@ -32,12 +32,12 @@ const deployParams: Record<number, DeployParams> = {
     axelarGateway: "0x97837985Ec0494E7b9C71f5D3f9250188477ae14",
     wormholeGateway: "0x1BB3B4119b7BA9dfad76B0545fb3F531383c3bB7",
   },
-  // 97: {
-  //   ...deployParamsBase,
-  //   trustedForwarder: "0x61456BF1715C1415730076BB79ae118E806E74d2",
-  //   axelarGateway: ""
-
-  // }
+  97: {
+    ...deployParamsBase,
+    trustedForwarder: "0x61456BF1715C1415730076BB79ae118E806E74d2",
+    axelarGateway: "0x4D147dCb984e6affEEC47e44293DA442580A3Ec0",
+    wormholeGateway: "0x68605AD7b15c732a30b1BbC62BE8F2A509D74b4D",
+  },
   31337: {
     ...deployParamsBase,
     trustedForwarder: "0x69FB8Dca8067A5D38703b9e8b39cf2D51473E4b4",

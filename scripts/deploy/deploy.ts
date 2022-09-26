@@ -40,7 +40,6 @@ export const deploy = async ({
   const [deployer] = await ethers.getSigners();
   console.log(`Deployer: ${deployer.address}`);
 
-  /*
   console.log(`Deploying CCMPGateway...`);
   const CCMPGateway = (await upgrades.deployProxy(await ethers.getContractFactory("CCMPGateway"), [
     trustedForwarder,
@@ -53,10 +52,6 @@ export const deploy = async ({
     CCMPGateway.address,
   ])) as CCMPExecutor;
   console.log(`CCMPExecutor: ${CCMPExecutor.address}`);
-  */
-
-  const CCMPGateway = CCMPGateway__factory.connect("0xdB44222Ca41a66F334201d9716D5472742913fE4", deployer);
-  const CCMPExecutor = CCMPExecutor__factory.connect("0xbf6Fa3c4aF92cdA0125320855412d48d304E26c2", deployer);
 
   let AxelarAdaptor;
   if (axelarGateway) {
@@ -129,7 +124,7 @@ const configure = async (contracts: CCMPContracts) => {
     await (await contracts.CCMPGateway.setRouterAdaptor(WormholeAdaptorKey, contracts.WormholeAdaptor.address)).wait();
     await waitSec(5);
   }
-  // await contracts.CCMPGateway.setCCMPExecutor(contracts.CCMPExecutor.address);
-  // await waitSec(5);
+  await contracts.CCMPGateway.setCCMPExecutor(contracts.CCMPExecutor.address);
+  await waitSec(5);
   console.log(`CCMPGateway configured.`);
 };
