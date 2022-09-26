@@ -7,10 +7,10 @@ import {IERC165} from "../../interfaces/IERC165.sol";
 import {IDiamondCut} from "../../interfaces/IDiamondCut.sol";
 import {IDiamondLoupe} from "../../interfaces/IDiamondLoupe.sol";
 import {ICCMPRouterAdaptor} from "../../interfaces/ICCMPRouterAdaptor.sol";
-import {ICCMPGateway} from "../../interfaces/ICCMPGateway.sol";
+import {ICCMPGateway, ICCMPConfiguration} from "../../interfaces/ICCMPGateway.sol";
 import {ICCMPExecutor} from "../../interfaces/ICCMPExecutor.sol";
 
-contract CCMPConfigurationFacet is IERC173 {
+contract CCMPConfigurationFacet is IERC173, ICCMPConfiguration {
     event GatewayUpdated(
         uint256 indexed destinationChainId,
         ICCMPGateway indexed gateway
@@ -18,12 +18,20 @@ contract CCMPConfigurationFacet is IERC173 {
     event CCMPExecutorUpdated(ICCMPExecutor indexed _ccmpExecutor);
     event AdaptorUpdated(string indexed adaptorName, address indexed adaptor);
 
-    function transferOwnership(address _newOwner) external {
+    function transferOwnership(address _newOwner)
+        external
+        override(IERC173, ICCMPConfiguration)
+    {
         LibDiamond._enforceIsContractOwner();
         LibDiamond._setContractOwner(_newOwner);
     }
 
-    function owner() external view override returns (address owner_) {
+    function owner()
+        external
+        view
+        override(IERC173, ICCMPConfiguration)
+        returns (address owner_)
+    {
         owner_ = LibDiamond._contractOwner();
     }
 
@@ -31,6 +39,14 @@ contract CCMPConfigurationFacet is IERC173 {
         LibDiamond._enforceIsContractOwner();
         LibDiamond._diamondStorage().gateways[_chainId] = _gateway;
         emit GatewayUpdated(_chainId, _gateway);
+    }
+
+    function gateway(uint256 _chainId)
+        external
+        view
+        returns (ICCMPGateway gateway_)
+    {
+        gateway_ = LibDiamond._diamondStorage().gateways[_chainId];
     }
 
     function setRouterAdaptor(string calldata name, ICCMPRouterAdaptor adaptor)
@@ -41,9 +57,21 @@ contract CCMPConfigurationFacet is IERC173 {
         emit AdaptorUpdated(name, address(adaptor));
     }
 
+    function routerAdator(string calldata name)
+        external
+        view
+        returns (ICCMPRouterAdaptor adaptor)
+    {
+        adaptor = LibDiamond._diamondStorage().adaptors[name];
+    }
+
     function setCCMPExecutor(ICCMPExecutor _ccmpExecutor) external {
         LibDiamond._enforceIsContractOwner();
         LibDiamond._diamondStorage().ccmpExecutor = _ccmpExecutor;
         emit CCMPExecutorUpdated(_ccmpExecutor);
+    }
+
+    function ccmpExecutor() external view returns (ICCMPExecutor executor) {
+        executor = LibDiamond._diamondStorage().ccmpExecutor;
     }
 }

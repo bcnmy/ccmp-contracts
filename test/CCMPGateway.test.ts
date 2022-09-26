@@ -9,7 +9,7 @@ import { GasFeePaymentArgsStruct } from "../typechain-types/contracts/CCMPGatewa
 import { parseUnits } from "ethers/lib/utils";
 import { use } from "chai";
 import {
-  CCMPGateway,
+  ICCMPGateway,
   AxelarAdaptor,
   WormholeAdaptor,
   SampleContract,
@@ -20,6 +20,11 @@ import {
   ERC20Token,
   SampleContract__factory,
   CCMPExecutor,
+  CCMPExecutor__factory,
+  AxelarAdaptor__factory,
+  WormholeAdaptor__factory,
+  CCMPHelper__factory,
+  ERC20Token__factory,
 } from "../typechain-types";
 
 const NATIVE = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
@@ -33,7 +38,7 @@ describe("CCMPGateway", async function () {
     charlie: SignerWithAddress,
     trustedForwarder: SignerWithAddress,
     pauser: SignerWithAddress;
-  let CCMPGateway: CCMPGateway,
+  let CCMPGateway: ICCMPGateway,
     CCMPExecutor: CCMPExecutor,
     AxelarAdaptor: AxelarAdaptor,
     WormholeAdaptor: WormholeAdaptor,
@@ -56,37 +61,33 @@ describe("CCMPGateway", async function () {
 
     MockWormholeGateway = (await (await ethers.getContractFactory("MockWormhole", owner)).deploy()) as MockWormhole;
 
-    CCMPGateway = (await upgrades.deployProxy(await ethers.getContractFactory("CCMPGateway"), [
+    CCMPGateway = await upgrades.deployProxy(await ethers.getContractFactory("CCMPGateway"), [
       trustedForwarder.address,
       pauser.address,
-    ])) as CCMPGateway;
+    ]);
 
-    CCMPExecutor = (await (
-      await ethers.getContractFactory("CCMPExecutor")
-    ).deploy(CCMPGateway.address)) as CCMPExecutor;
+    CCMPExecutor = (await new CCMPExecutor__factory(owner).deploy(CCMPGateway.address)) as CCMPExecutor;
     await CCMPGateway.setCCMPExecutor(CCMPExecutor.address);
 
-    AxelarAdaptor = (await (
-      await ethers.getContractFactory("AxelarAdaptor")
-    ).deploy(MockAxelarGateway.address, CCMPGateway.address, pauser.address)) as AxelarAdaptor;
+    AxelarAdaptor = (await new AxelarAdaptor__factory(owner).deploy(
+      MockAxelarGateway.address,
+      CCMPGateway.address,
+      pauser.address
+    )) as AxelarAdaptor;
 
-    WormholeAdaptor = (await (
-      await ethers.getContractFactory("WormholeAdaptor")
-    ).deploy(MockWormholeGateway.address, CCMPGateway.address, pauser.address)) as WormholeAdaptor;
+    WormholeAdaptor = (await new WormholeAdaptor__factory(owner).deploy(
+      MockWormholeGateway.address,
+      CCMPGateway.address,
+      pauser.address
+    )) as WormholeAdaptor;
 
-    SampleContract = (await (
-      await ethers.getContractFactory("SampleContract")
-    ).deploy(CCMPExecutor.address)) as SampleContract;
+    SampleContract = (await new SampleContract__factory(owner).deploy(CCMPExecutor.address)) as SampleContract;
 
     SampleContractMock = await smock.fake(SampleContract__factory.abi);
 
-    CCMPHelper = (await (await ethers.getContractFactory("CCMPHelper")).deploy()) as CCMPHelper;
+    CCMPHelper = (await new CCMPHelper__factory(owner).deploy()) as CCMPHelper;
 
-    Token = (await upgrades.deployProxy(await ethers.getContractFactory("ERC20Token"), [
-      "Token",
-      "TKN",
-      18,
-    ])) as ERC20Token;
+    Token = (await upgrades.deployProxy(new ERC20Token__factory(owner), ["Token", "TKN", 18])) as ERC20Token;
 
     for (const signer of [owner, alice, bob, charlie, trustedForwarder, pauser]) {
       await Token.mint(signer.address, parseUnits("1000000", 18));
