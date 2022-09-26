@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import {AbacusConnectionClient} from "@abacus-network/app/contracts/AbacusConnectionClient.sol";
+import {AbacusConnectionClient} from "./base/AbacusConnectionClient.sol";
 import {IMessageRecipient} from "@abacus-network/core/interfaces/IMessageRecipient.sol";
 import "../interfaces/IAxelarGateway.sol";
 import "../structures/CrossChainMessage.sol";
 
-import "./CCMPAdaptorBase.sol";
+import "./base/CCMPAdaptorBase.sol";
 
 error AbacusAdapterDestinationChainUnsupported(uint256 chainId);
 
@@ -31,19 +31,18 @@ contract AbacusAdapter is
     mapping(uint256 => uint32) public chainIdToDomainId;
     mapping(bytes32 => bool) public messageHashVerified;
 
-    function initialize(
+    constructor(
         address _ccmpGateway,
-        address _trustedForwader,
         address _pauser,
         address _abacusConnectionManager,
         address _interchainGasPaymaster
-    ) public initializer {
-        __Adaptor_init(_trustedForwader, _ccmpGateway, _pauser);
-        __AbacusConnectionClient_initialize(
+    )
+        CCMPAdaptorBase(_ccmpGateway, _pauser)
+        AbacusConnectionClient(
             _abacusConnectionManager,
             _interchainGasPaymaster
-        );
-
+        )
+    {
         // Initialize default domain IDs: https://docs.useabacus.network/abacus-docs/developers/domains
         // Testnet
         chainIdToDomainId[44787] = 1000;
@@ -112,25 +111,5 @@ contract AbacusAdapter is
     {
         chainIdToDomainId[_chainId] = _domainId;
         emit DomainIdUpdated(_chainId, _domainId);
-    }
-
-    function _msgSender()
-        internal
-        view
-        virtual
-        override(ContextUpgradeable, CCMPAdaptorBase)
-        returns (address sender)
-    {
-        return super._msgSender();
-    }
-
-    function _msgData()
-        internal
-        view
-        virtual
-        override(ContextUpgradeable, CCMPAdaptorBase)
-        returns (bytes calldata)
-    {
-        return super._msgData();
     }
 }

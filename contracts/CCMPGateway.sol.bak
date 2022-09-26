@@ -8,7 +8,6 @@ import "./interfaces/ICCMPRouterAdaptor.sol";
 import "./interfaces/ICCMPExecutor.sol";
 import "./structures/CrossChainMessage.sol";
 import "./security/Pausable.sol";
-import "./metatx/ERC2771ContextUpgradeable.sol";
 import "./structures/Constants.sol";
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";

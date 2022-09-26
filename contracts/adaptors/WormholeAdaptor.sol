@@ -2,7 +2,7 @@
 pragma solidity 0.8.16;
 
 import "../interfaces/IWormhole.sol";
-import "./CCMPAdaptorBase.sol";
+import "./base/CCMPAdaptorBase.sol";
 
 /// @title Wormhole Adaptor
 /// @author ankur@biconomy.io
@@ -20,13 +20,11 @@ contract WormholeAdaptor is CCMPAdaptorBase {
     );
     event WormholeUpdated(address indexed newWormhole);
 
-    function initialize(
+    constructor(
         address _wormhole,
         address _ccmpGateway,
-        address _trustedForwader,
         address _pauser
-    ) public initializer {
-        __Adaptor_init(_trustedForwader, _ccmpGateway, _pauser);
+    ) CCMPAdaptorBase(_ccmpGateway, _pauser) {
         wormhole = IWormhole(_wormhole);
         wormholeMessageNonce = 0;
     }
@@ -70,9 +68,9 @@ contract WormholeAdaptor is CCMPAdaptorBase {
             return (valid, reason);
         }
 
-        return (
-            keccak256(vm.payload) == keccak256(abi.encode(_ccmpMessage.hash())),
-            "ERR_PAYLOAD_MISMATCH"
-        );
+        bool status = keccak256(vm.payload) ==
+            keccak256(abi.encode(_ccmpMessage.hash()));
+
+        return (status, status ? "" : "ERR_PAYLOAD_MISMATCH");
     }
 }

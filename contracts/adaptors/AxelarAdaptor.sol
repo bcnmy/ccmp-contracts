@@ -4,7 +4,7 @@ pragma solidity 0.8.16;
 import "../interfaces/IAxelarGateway.sol";
 import "../structures/CrossChainMessage.sol";
 
-import "./CCMPAdaptorBase.sol";
+import "./base/CCMPAdaptorBase.sol";
 
 error AxelarAdaptorSourceChainNotSupported(uint256 chainId);
 error AxelarAdaptorDestinationChainNotSupported(uint256 chainId);
@@ -25,13 +25,11 @@ contract AxelarAdaptor is CCMPAdaptorBase {
     );
     event AxelarMessageRoutedViaWormhole();
 
-    function initialize(
+    constructor(
         address _axelarGateway,
         address _ccmpGateway,
-        address _trustedForwader,
         address _pauser
-    ) public initializer {
-        __Adaptor_init(_trustedForwader, _ccmpGateway, _pauser);
+    ) CCMPAdaptorBase(_ccmpGateway, _pauser) {
         axelarGateway = IAxelarGateway(_axelarGateway);
 
         // Setup Mainnet Chain ID to Names

@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/ICCMPExecutor.sol";
 
 error InvalidSender();
@@ -10,26 +9,20 @@ error InvalidSender();
 /// @title CCMPExecutor
 /// @author ankur@biconomy.io
 /// @notice Handles message execution
-contract CCMPExecutor is Initializable, OwnableUpgradeable, ICCMPExecutor {
-    address public _ccmpGateway;
+contract CCMPExecutor is Ownable, ICCMPExecutor {
+    address public ccmpGateway;
 
     event GatewayUpgraded(address indexed newGateway);
 
     modifier onlyGateway() {
-        if (msg.sender != _ccmpGateway) {
+        if (msg.sender != ccmpGateway) {
             revert InvalidSender();
         }
         _;
     }
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        _disableInitializers();
-    }
-
-    function initialize(address __ccmpGateway) external initializer {
-        __Ownable_init();
-        _ccmpGateway = __ccmpGateway;
+    constructor(address _ccmpGateway) Ownable() {
+        ccmpGateway = _ccmpGateway;
     }
 
     /// @notice Handles Execution of the received message from CCMP Gateway on destination chain.
@@ -42,7 +35,7 @@ contract CCMPExecutor is Initializable, OwnableUpgradeable, ICCMPExecutor {
     }
 
     function updateCCMPGateway(address _newCCMPGateway) external onlyOwner {
-        _ccmpGateway = _newCCMPGateway;
+        ccmpGateway = _newCCMPGateway;
         emit GatewayUpgraded(_newCCMPGateway);
     }
 }
