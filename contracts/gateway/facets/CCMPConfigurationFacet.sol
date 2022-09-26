@@ -3,6 +3,9 @@ pragma solidity 0.8.16;
 
 import {LibDiamond} from "../../libraries/LibDiamond.sol";
 import {IERC173} from "../../interfaces/IERC173.sol";
+import {IERC165} from "../../interfaces/IERC165.sol";
+import {IDiamondCut} from "../../interfaces/IDiamondCut.sol";
+import {IDiamondLoupe} from "../../interfaces/IDiamondLoupe.sol";
 import {ICCMPRouterAdaptor} from "../../interfaces/ICCMPRouterAdaptor.sol";
 import {ICCMPGateway} from "../../interfaces/ICCMPGateway.sol";
 import {ICCMPExecutor} from "../../interfaces/ICCMPExecutor.sol";
@@ -15,7 +18,7 @@ contract CCMPConfigurationFacet is IERC173 {
     event CCMPExecutorUpdated(ICCMPExecutor indexed _ccmpExecutor);
     event AdaptorUpdated(string indexed adaptorName, address indexed adaptor);
 
-    function transferOwnership(address _newOwner) external override {
+    function transferOwnership(address _newOwner) external {
         LibDiamond._enforceIsContractOwner();
         LibDiamond._setContractOwner(_newOwner);
     }
