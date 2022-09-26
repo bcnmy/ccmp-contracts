@@ -12,43 +12,12 @@ import "../../libraries/LibDiamond.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-// SendMessage
-error UnsupportedAdapter(string adaptorName);
-error UnsupportedDestinationChain(uint256 destinationChainId);
-error InvalidPayload(string reason);
-
-// Fee
-error AmountIsZero();
-error NativeAmountMismatch();
-error NativeTransferFailed(address relayer, bytes data);
-error AmountExceedsBalance(uint256 _amount, uint256 balance);
-error InsufficientNativeAmount(uint256 requiredAmount, uint256 actualAmount);
-
 /// @title CCMPSendMessageFacet
 /// @author ankur@biconomy.io
 /// @notice This facet is used to send cross chain messages
 contract CCMPSendMessageFacet is ICCMPGatewaySender, Constants {
     using CCMPMessageUtils for CCMPMessage;
     using SafeERC20 for IERC20;
-
-    event CCMPMessageRouted(
-        bytes32 indexed hash,
-        address indexed sender,
-        ICCMPGateway sourceGateway,
-        ICCMPRouterAdaptor sourceAdaptor,
-        uint256 sourceChainId,
-        ICCMPGateway destinationGateway,
-        uint256 indexed destinationChainId,
-        uint256 nonce,
-        string routerAdaptor,
-        GasFeePaymentArgs gasFeePaymentArgs,
-        CCMPMessagePayload[] payload
-    );
-    event FeePaid(
-        address indexed _tokenAddress,
-        uint256 indexed _amount,
-        address indexed _relayer
-    );
 
     /// @param _destinationChainId The chain id of the destination chain.
     /// @param _adaptorName The name of the router adaptor to use. Currently "axelar", "wormhole" and "abacus" are supported.

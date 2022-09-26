@@ -5,7 +5,44 @@ import "../structures/CrossChainMessage.sol";
 import "../interfaces/ICCMPRouterAdaptor.sol";
 import "./ICCMPExecutor.sol";
 
-interface ICCMPGatewaySender {
+interface ICCMPGatewayBase {
+    error UnsupportedAdapter(string adaptorName);
+}
+
+interface ICCMPGatewaySender is ICCMPGatewayBase {
+    // Errors
+    error UnsupportedDestinationChain(uint256 destinationChainId);
+    error InvalidPayload(string reason);
+    error AmountIsZero();
+    error NativeAmountMismatch();
+    error NativeTransferFailed(address relayer, bytes data);
+    error AmountExceedsBalance(uint256 _amount, uint256 balance);
+    error InsufficientNativeAmount(
+        uint256 requiredAmount,
+        uint256 actualAmount
+    );
+
+    // Events
+    event CCMPMessageRouted(
+        bytes32 indexed hash,
+        address indexed sender,
+        ICCMPGateway sourceGateway,
+        ICCMPRouterAdaptor sourceAdaptor,
+        uint256 sourceChainId,
+        ICCMPGateway destinationGateway,
+        uint256 indexed destinationChainId,
+        uint256 nonce,
+        string routerAdaptor,
+        GasFeePaymentArgs gasFeePaymentArgs,
+        CCMPMessagePayload[] payload
+    );
+    event FeePaid(
+        address indexed _tokenAddress,
+        uint256 indexed _amount,
+        address indexed _relayer
+    );
+
+    // Functions
     function sendMessage(
         uint256 _destinationChainId,
         string calldata _adaptorName,
@@ -15,7 +52,44 @@ interface ICCMPGatewaySender {
     ) external payable returns (bool sent);
 }
 
-interface ICCMPGatewayReceiver {
+interface ICCMPGatewayReceiver is ICCMPGatewayBase {
+    // Errors
+    error InvalidSource(uint256 sourceChainId, ICCMPGateway sourceGateway);
+    error WrongDestination(
+        uint256 destinationChainId,
+        ICCMPGateway destinationGateway
+    );
+    error AlreadyExecuted(uint256 nonce);
+    error VerificationFailed(string reason);
+    error ExternalCallFailed(
+        uint256 index,
+        address contractAddress,
+        bytes returndata
+    );
+
+    // Events
+    event CCMPMessageExecuted(
+        bytes32 indexed hash,
+        address indexed sender,
+        ICCMPGateway sourceGateway,
+        ICCMPRouterAdaptor sourceAdaptor,
+        uint256 sourceChainId,
+        ICCMPGateway destinationGateway,
+        uint256 indexed destinationChainId,
+        uint256 nonce,
+        string routerAdaptor,
+        GasFeePaymentArgs gasFeePaymentArgs,
+        CCMPMessagePayload[] payload
+    );
+
+    event CCMPPayloadExecuted(
+        uint256 indexed index,
+        address indexed contractAddress,
+        bool success,
+        bytes returndata
+    );
+
+    // Functions
     function receiveMessage(
         CCMPMessage calldata _message,
         bytes calldata _verificationData,
@@ -24,6 +98,15 @@ interface ICCMPGatewayReceiver {
 }
 
 interface ICCMPConfiguration {
+    // Events
+    event GatewayUpdated(
+        uint256 indexed destinationChainId,
+        ICCMPGateway indexed gateway
+    );
+    event CCMPExecutorUpdated(ICCMPExecutor indexed _ccmpExecutor);
+    event AdaptorUpdated(string indexed adaptorName, address indexed adaptor);
+
+    // Functions
     function setGateway(uint256 _chainId, ICCMPGateway _gateway) external;
 
     function setRouterAdaptor(string calldata name, ICCMPRouterAdaptor adaptor)

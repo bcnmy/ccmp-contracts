@@ -22,7 +22,6 @@ import {
   DiamondInit,
   CCMPReceiverMessageFacet,
   Diamond,
-  ICCMPGateway,
   ICCMPGateway__factory,
 } from "../../typechain-types";
 import { Contract } from "ethers";
@@ -55,8 +54,8 @@ export type CCMPContracts = {
   WormholeAdaptor?: WormholeAdaptor;
 } & GatewayContracts;
 
-export const deployGateway = async (owner: string): Promise<GatewayContracts> => {
-  console.log("Deploying CCMPGateway...");
+export const deployGateway = async (debug: boolean = false): Promise<GatewayContracts> => {
+  debug && console.log("Deploying CCMPGateway...");
   const [signer] = await ethers.getSigners();
 
   // Deploy DiamondInit
@@ -64,35 +63,35 @@ export const deployGateway = async (owner: string): Promise<GatewayContracts> =>
   // Read about how the diamondCut function works in the EIP2535 Diamonds standard
   const DiamondInit = await new DiamondInit__factory(signer).deploy();
   await DiamondInit.deployed();
-  console.log("DiamondInit deployed:", DiamondInit.address);
+  debug && console.log("DiamondInit deployed:", DiamondInit.address);
 
   // Deploy facets and set the `facetCuts` variable
-  console.log("Deploying facets...");
+  debug && console.log("Deploying facets...");
 
-  console.log("Deploying CCMPConfigurationFacet...");
+  debug && console.log("Deploying CCMPConfigurationFacet...");
   const CCMPConfigurationFacet = await new CCMPConfigurationFacet__factory(signer).deploy();
   await CCMPConfigurationFacet.deployed();
-  console.log("CCMPConfigurationFacet deployed:", CCMPConfigurationFacet.address);
+  debug && console.log("CCMPConfigurationFacet deployed:", CCMPConfigurationFacet.address);
 
-  console.log("Deploying CCMPReceiverMessageFacet...");
+  debug && console.log("Deploying CCMPReceiverMessageFacet...");
   const CCMPReceiverMessageFacet = await new CCMPReceiverMessageFacet__factory(signer).deploy();
   await CCMPReceiverMessageFacet.deployed();
-  console.log("CCMPReceiverMessageFacet deployed:", CCMPReceiverMessageFacet.address);
+  debug && console.log("CCMPReceiverMessageFacet deployed:", CCMPReceiverMessageFacet.address);
 
-  console.log("Deploying CCMPSendMessageFacet...");
+  debug && console.log("Deploying CCMPSendMessageFacet...");
   const CCMPSendMessageFacet = await new CCMPSendMessageFacet__factory(signer).deploy();
   await CCMPSendMessageFacet.deployed();
-  console.log("CCMPSendMessageFacet deployed:", CCMPSendMessageFacet.address);
+  debug && console.log("CCMPSendMessageFacet deployed:", CCMPSendMessageFacet.address);
 
-  console.log("Deploying DiamondCutFacet...");
+  debug && console.log("Deploying DiamondCutFacet...");
   const DiamondCutFacet = await new DiamondCutFacet__factory(signer).deploy();
   await DiamondCutFacet.deployed();
-  console.log("DiamondCutFacet deployed:", DiamondCutFacet.address);
+  debug && console.log("DiamondCutFacet deployed:", DiamondCutFacet.address);
 
-  console.log("Deploying DiamondLoupeFacet...");
+  debug && console.log("Deploying DiamondLoupeFacet...");
   const DiamondLoupeFacet = await new DiamondLoupeFacet__factory(signer).deploy();
   await DiamondLoupeFacet.deployed();
-  console.log("DiamondLoupeFacet deployed:", DiamondLoupeFacet.address);
+  debug && console.log("DiamondLoupeFacet deployed:", DiamondLoupeFacet.address);
 
   const facetCuts = [
     CCMPConfigurationFacet,
@@ -121,8 +120,7 @@ export const deployGateway = async (owner: string): Promise<GatewayContracts> =>
   // deploy Diamond
   const Diamond = await new Diamond__factory(signer).deploy(facetCuts, diamondArgs);
   await Diamond.deployed();
-  console.log();
-  console.log("CCMP Gateway Diamond deployed:", Diamond.address);
+  debug && console.log("CCMP Gateway Diamond deployed:", Diamond.address);
 
   return {
     CCMPConfigurationFacet,
@@ -135,39 +133,37 @@ export const deployGateway = async (owner: string): Promise<GatewayContracts> =>
   };
 };
 
-export const deploy = async ({
-  owner,
-  pauser,
-  axelarGateway,
-  wormholeGateway,
-}: DeployParams): Promise<CCMPContracts> => {
+export const deploy = async (
+  { owner, pauser, axelarGateway, wormholeGateway }: DeployParams,
+  debug: boolean = false
+): Promise<CCMPContracts> => {
   const [deployer] = await ethers.getSigners();
-  console.log(`Deployer: ${deployer.address}`);
+  debug && console.log(`Deployer: ${deployer.address}`);
 
-  const diamonds = await deployGateway(owner);
+  const diamonds = await deployGateway(debug);
 
   await waitSec(5);
 
   const CCMPExecutor = await new CCMPExecutor__factory(deployer).deploy(diamonds.Diamond.address);
-  console.log(`CCMPExecutor: ${CCMPExecutor.address}`);
+  debug && console.log(`CCMPExecutor: ${CCMPExecutor.address}`);
 
   let AxelarAdaptor;
   if (axelarGateway) {
-    console.log(`Deploying AxelarAdaptor...`);
+    debug && console.log(`Deploying AxelarAdaptor...`);
     AxelarAdaptor = await new AxelarAdaptor__factory(deployer).deploy(axelarGateway, diamonds.Diamond.address, pauser);
-    console.log(`AxelarAdaptor: ${AxelarAdaptor.address}`);
+    debug && console.log(`AxelarAdaptor: ${AxelarAdaptor.address}`);
     await waitSec(5);
   }
 
   let WormholeAdaptor;
   if (wormholeGateway) {
-    console.log(`Deploying WormholeAdaptor...`);
+    debug && console.log(`Deploying WormholeAdaptor...`);
     WormholeAdaptor = await new WormholeAdaptor__factory(deployer).deploy(
       wormholeGateway,
       diamonds.Diamond.address,
       pauser
     );
-    console.log(`WormholeAdaptor: ${WormholeAdaptor.address}`);
+    debug && console.log(`WormholeAdaptor: ${WormholeAdaptor.address}`);
     await waitSec(5);
   }
 
@@ -178,31 +174,31 @@ export const deploy = async ({
     ...diamonds,
   };
 
-  await configure(contracts);
+  await configure(contracts, debug);
 
-  await transferOwnership(contracts.CCMPExecutor, owner);
-  await transferOwnership(ICCMPGateway__factory.connect(contracts.Diamond.address, deployer), owner);
+  await transferOwnership(contracts.CCMPExecutor, owner, debug);
+  await transferOwnership(ICCMPGateway__factory.connect(contracts.Diamond.address, deployer), owner, debug);
 
   return contracts;
 };
 
-export const deploySampleContract = async (ccmpExecutor: string): Promise<SampleContract> => {
-  console.log(`Deploying SampleContract...`);
+export const deploySampleContract = async (ccmpExecutor: string, debug: boolean = false): Promise<SampleContract> => {
+  debug && console.log(`Deploying SampleContract...`);
   const SampleContract = (await (
     await ethers.getContractFactory("SampleContract")
   ).deploy(ccmpExecutor)) as SampleContract;
-  console.log(`SampleContract: ${SampleContract.address}`);
+  debug && console.log(`SampleContract: ${SampleContract.address}`);
   return SampleContract;
 };
 
-const transferOwnership = async (contract: Contract, newOwner: string) => {
-  console.log(`Transferring ownership of ${contract.address} to ${newOwner}...`);
+const transferOwnership = async (contract: Contract, newOwner: string, debug: boolean = false) => {
+  debug && console.log(`Transferring ownership of ${contract.address} to ${newOwner}...`);
   await contract.transferOwnership(newOwner);
-  console.log(`Ownership transferred.`);
+  debug && console.log(`Ownership transferred.`);
 };
 
-const configure = async (contracts: CCMPContracts) => {
-  console.log(`Configuring CCMPGateway...`);
+const configure = async (contracts: CCMPContracts, debug: boolean = false) => {
+  debug && console.log(`Configuring CCMPGateway...`);
   const [deployer] = await ethers.getSigners();
 
   const CCMPGateway = ICCMPGateway__factory.connect(contracts.Diamond.address, deployer);
@@ -217,5 +213,5 @@ const configure = async (contracts: CCMPContracts) => {
   }
   await CCMPGateway.setCCMPExecutor(contracts.CCMPExecutor.address);
   await waitSec(5);
-  console.log(`CCMPGateway configured.`);
+  debug && console.log(`CCMPGateway configured.`);
 };

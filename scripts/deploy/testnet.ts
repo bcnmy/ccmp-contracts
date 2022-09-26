@@ -49,7 +49,7 @@ const deployParams: Record<number, DeployParams> = {
     throw new Error(`No deploy params for network ${networkId}`);
   }
 
-  const contracts = await deploy(params);
+  const contracts = await deploy(params, true);
   const sampleContract = await deploySampleContract(contracts.CCMPExecutor.address);
 
   console.log("Contracts: ");

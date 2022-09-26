@@ -10,49 +10,11 @@ import "../../structures/CrossChainMessage.sol";
 import "../../structures/Constants.sol";
 import "../../libraries/LibDiamond.sol";
 
-// ReceiveMessage
-error InvalidSource(uint256 sourceChainId, ICCMPGateway sourceGateway);
-error WrongDestination(
-    uint256 destinationChainId,
-    ICCMPGateway destinationGateway
-);
-error UnsupportedAdapter(string adaptorName);
-
-// Execution
-error AlreadyExecuted(uint256 nonce);
-error VerificationFailed(string reason);
-error ExternalCallFailed(
-    uint256 index,
-    address contractAddress,
-    bytes returndata
-);
-
 /// @title CCMPReceiveMessageFacet
 /// @author ankur@biconomy.io
 /// @notice This facet receives cross chain messages from relayers
 contract CCMPReceiverMessageFacet is ICCMPGatewayReceiver, Constants {
     using CCMPMessageUtils for CCMPMessage;
-
-    event CCMPMessageExecuted(
-        bytes32 indexed hash,
-        address indexed sender,
-        ICCMPGateway sourceGateway,
-        ICCMPRouterAdaptor sourceAdaptor,
-        uint256 sourceChainId,
-        ICCMPGateway destinationGateway,
-        uint256 indexed destinationChainId,
-        uint256 nonce,
-        string routerAdaptor,
-        GasFeePaymentArgs gasFeePaymentArgs,
-        CCMPMessagePayload[] payload
-    );
-
-    event CCMPPayloadExecuted(
-        uint256 indexed index,
-        address indexed contractAddress,
-        bool success,
-        bytes returndata
-    );
 
     /// @notice Function called by the relayer on the destination chain to execute the sent message on the exit chain.
     /// @param _message The message to be executed.
@@ -152,7 +114,7 @@ contract CCMPReceiverMessageFacet is ICCMPGatewayReceiver, Constants {
                 )
             );
 
-            if (_allowPartialExecution && !success) {
+            if (!(_allowPartialExecution || success)) {
                 revert ExternalCallFailed(i, _payload.to, returndata);
             }
 

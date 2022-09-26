@@ -11,13 +11,6 @@ import {ICCMPGateway, ICCMPConfiguration} from "../../interfaces/ICCMPGateway.so
 import {ICCMPExecutor} from "../../interfaces/ICCMPExecutor.sol";
 
 contract CCMPConfigurationFacet is IERC173, ICCMPConfiguration {
-    event GatewayUpdated(
-        uint256 indexed destinationChainId,
-        ICCMPGateway indexed gateway
-    );
-    event CCMPExecutorUpdated(ICCMPExecutor indexed _ccmpExecutor);
-    event AdaptorUpdated(string indexed adaptorName, address indexed adaptor);
-
     function transferOwnership(address _newOwner)
         external
         override(IERC173, ICCMPConfiguration)

@@ -10,6 +10,7 @@ import { parseUnits } from "ethers/lib/utils";
 import { use } from "chai";
 import {
   ICCMPGateway,
+  ICCMPGateway__factory,
   AxelarAdaptor,
   WormholeAdaptor,
   SampleContract,
@@ -25,7 +26,10 @@ import {
   WormholeAdaptor__factory,
   CCMPHelper__factory,
   ERC20Token__factory,
+  MockWormhole__factory,
+  LibDiamond__factory,
 } from "../typechain-types";
+import { deployGateway } from "../scripts/deploy/deploy";
 
 const NATIVE = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
@@ -59,33 +63,31 @@ describe("CCMPGateway", async function () {
 
     MockAxelarGateway = await smock.fake(IAxelarGateway__factory.abi);
 
-    MockWormholeGateway = (await (await ethers.getContractFactory("MockWormhole", owner)).deploy()) as MockWormhole;
+    MockWormholeGateway = await new MockWormhole__factory(owner).deploy();
 
-    CCMPGateway = await upgrades.deployProxy(await ethers.getContractFactory("CCMPGateway"), [
-      trustedForwarder.address,
-      pauser.address,
-    ]);
+    const { Diamond } = await deployGateway();
+    CCMPGateway = ICCMPGateway__factory.connect(Diamond.address, owner);
 
-    CCMPExecutor = (await new CCMPExecutor__factory(owner).deploy(CCMPGateway.address)) as CCMPExecutor;
+    CCMPExecutor = await new CCMPExecutor__factory(owner).deploy(CCMPGateway.address);
     await CCMPGateway.setCCMPExecutor(CCMPExecutor.address);
 
-    AxelarAdaptor = (await new AxelarAdaptor__factory(owner).deploy(
+    AxelarAdaptor = await new AxelarAdaptor__factory(owner).deploy(
       MockAxelarGateway.address,
       CCMPGateway.address,
       pauser.address
-    )) as AxelarAdaptor;
+    );
 
-    WormholeAdaptor = (await new WormholeAdaptor__factory(owner).deploy(
+    WormholeAdaptor = await new WormholeAdaptor__factory(owner).deploy(
       MockWormholeGateway.address,
       CCMPGateway.address,
       pauser.address
-    )) as WormholeAdaptor;
+    );
 
-    SampleContract = (await new SampleContract__factory(owner).deploy(CCMPExecutor.address)) as SampleContract;
+    SampleContract = await new SampleContract__factory(owner).deploy(CCMPExecutor.address);
 
     SampleContractMock = await smock.fake(SampleContract__factory.abi);
 
-    CCMPHelper = (await new CCMPHelper__factory(owner).deploy()) as CCMPHelper;
+    CCMPHelper = await new CCMPHelper__factory(owner).deploy();
 
     Token = (await upgrades.deployProxy(new ERC20Token__factory(owner), ["Token", "TKN", 18])) as ERC20Token;
 
@@ -105,14 +107,12 @@ describe("CCMPGateway", async function () {
       .to.emit(CCMPGateway, "AdaptorUpdated")
       .withArgs("wormhole", WormholeAdaptor.address);
 
-    expect(await CCMPGateway.adaptors("axelar")).to.equal(AxelarAdaptor.address);
-    expect(await CCMPGateway.adaptors("wormhole")).to.equal(WormholeAdaptor.address);
+    expect(await CCMPGateway.routerAdator("axelar")).to.equal(AxelarAdaptor.address);
+    expect(await CCMPGateway.routerAdator("wormhole")).to.equal(WormholeAdaptor.address);
   });
 
   it("Should prevent non owners from setting adaptors", async function () {
-    await expect(CCMPGateway.connect(alice).setRouterAdaptor("wormhole", WormholeAdaptor.address)).to.be.revertedWith(
-      "Ownable: caller is not the owner"
-    );
+    await expect(CCMPGateway.connect(alice).setRouterAdaptor("wormhole", WormholeAdaptor.address)).to.be.reverted;
   });
 
   it("Should set gateways correctly", async function () {
@@ -120,13 +120,11 @@ describe("CCMPGateway", async function () {
       .to.emit(CCMPGateway, "GatewayUpdated")
       .withArgs(10, CCMPGateway.address);
 
-    expect(await CCMPGateway.gateways(10)).to.equal(CCMPGateway.address);
+    expect(await CCMPGateway.gateway(10)).to.equal(CCMPGateway.address);
   });
 
   it("Should prevent non owners from setting gateway", async function () {
-    await expect(CCMPGateway.connect(alice).setGateway(10, CCMPGateway.address)).to.be.revertedWith(
-      "Ownable: caller is not the owner"
-    );
+    await expect(CCMPGateway.connect(alice).setGateway(10, CCMPGateway.address)).to.be.reverted;
   });
 
   describe("Sending Messages", async function () {
@@ -481,7 +479,7 @@ describe("CCMPGateway", async function () {
       await CCMPGateway.setRouterAdaptor("wormhole", WormholeAdaptor.address);
     });
 
-    it("Shoud allow fee to be paid separately in native tokens", async function () {
+    it("Should allow fee to be paid separately in native tokens", async function () {
       gasFeePaymentArgs.feeAmount = parseUnits("1", 18);
       gasFeePaymentArgs.relayer = charlie.address;
 
@@ -500,7 +498,7 @@ describe("CCMPGateway", async function () {
       ).to.changeEtherBalances([owner, charlie], [gasFeePaymentArgs.feeAmount.mul(-1), gasFeePaymentArgs.feeAmount]);
     });
 
-    it("Shoud revert if there is a mismatch in native token fee amount", async function () {
+    it("Should revert if there is a mismatch in native token fee amount", async function () {
       gasFeePaymentArgs.feeAmount = parseUnits("1", 18);
       gasFeePaymentArgs.relayer = charlie.address;
 
@@ -516,7 +514,7 @@ describe("CCMPGateway", async function () {
       gasFeePaymentArgs.relayer = charlie.address;
       gasFeePaymentArgs.feeTokenAddress = Token.address;
 
-      await Token.approve(CCMPGateway.address, gasFeePaymentArgs.feeAmount);
+      await Token.approve(CCMPGateway.address, gasFeePaymentArgs.feeAmount.mul(2));
 
       await expect(CCMPGateway.sendMessage(1, "wormhole", payloads, gasFeePaymentArgs, routeArgs))
         .to.emit(CCMPGateway, "FeePaid")
