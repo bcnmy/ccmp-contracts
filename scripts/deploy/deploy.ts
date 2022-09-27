@@ -49,13 +49,33 @@ export type GatewayContracts = {
   DiamondInit: DiamondInit;
   Diamond: Diamond;
 };
+
+export type GatewayContractConstructorArgs = {
+  CCMPConfigurationFacet: any[];
+  CCMPReceiverMessageFacet: any[];
+  CCMPSendMessageFacet: any[];
+  DiamondCutFacet: any[];
+  DiamondLoupeFacet: any[];
+  DiamondInit: any[];
+  Diamond: any[];
+};
+
 export type CCMPContracts = {
   CCMPExecutor: CCMPExecutor;
   AxelarAdaptor?: AxelarAdaptor;
   WormholeAdaptor?: WormholeAdaptor;
 } & GatewayContracts;
 
-export const deployGateway = async (pauser: string, debug: boolean = false): Promise<GatewayContracts> => {
+export type CCMPContractsConstructorArgs = {
+  CCMPExecutor: any[];
+  AxelarAdaptor?: any[];
+  WormholeAdaptor?: any[];
+} & GatewayContractConstructorArgs;
+
+export const deployGateway = async (
+  pauser: string,
+  debug: boolean = false
+): Promise<{ contracts: GatewayContracts; constructorArgs: GatewayContractConstructorArgs }> => {
   debug && console.log("Deploying CCMPGateway...");
   const [signer] = await ethers.getSigners();
 
@@ -125,39 +145,55 @@ export const deployGateway = async (pauser: string, debug: boolean = false): Pro
   debug && console.log("CCMP Gateway Diamond deployed:", Diamond.address);
 
   return {
-    CCMPConfigurationFacet,
-    CCMPReceiverMessageFacet,
-    CCMPSendMessageFacet,
-    DiamondCutFacet,
-    DiamondLoupeFacet,
-    DiamondInit,
-    Diamond,
+    contracts: {
+      CCMPConfigurationFacet,
+      CCMPReceiverMessageFacet,
+      CCMPSendMessageFacet,
+      DiamondCutFacet,
+      DiamondLoupeFacet,
+      DiamondInit,
+      Diamond,
+    },
+    constructorArgs: {
+      CCMPConfigurationFacet: [],
+      CCMPReceiverMessageFacet: [],
+      CCMPSendMessageFacet: [],
+      DiamondCutFacet: [],
+      DiamondLoupeFacet: [],
+      DiamondInit: [],
+      Diamond: [facetCuts, diamondArgs],
+    },
   };
 };
 
 export const deploy = async (
   { owner, pauser, axelarGateway, wormholeGateway }: DeployParams,
   debug: boolean = false
-): Promise<CCMPContracts> => {
+): Promise<{ contracts: CCMPContracts; constructorArgs: CCMPContractsConstructorArgs }> => {
   const [deployer] = await ethers.getSigners();
   debug && console.log(`Deployer: ${deployer.address}`);
 
-  const diamonds = await deployGateway(pauser, debug);
+  const { contracts: diamonds, constructorArgs } = await deployGateway(pauser, debug);
+  const updatedConstructorArgs = { ...constructorArgs } as CCMPContractsConstructorArgs;
 
   await waitSec(5);
 
   const CCMPExecutor = await new CCMPExecutor__factory(deployer).deploy(diamonds.Diamond.address);
+  updatedConstructorArgs.CCMPExecutor = [diamonds.Diamond.address];
   debug && console.log(`CCMPExecutor: ${CCMPExecutor.address}`);
 
   let AxelarAdaptor;
+  updatedConstructorArgs.AxelarAdaptor = [];
   if (axelarGateway) {
     debug && console.log(`Deploying AxelarAdaptor...`);
     AxelarAdaptor = await new AxelarAdaptor__factory(deployer).deploy(axelarGateway, diamonds.Diamond.address, pauser);
+    updatedConstructorArgs.AxelarAdaptor = [axelarGateway, diamonds.Diamond.address, pauser];
     debug && console.log(`AxelarAdaptor: ${AxelarAdaptor.address}`);
     await waitSec(5);
   }
 
   let WormholeAdaptor;
+  updatedConstructorArgs.WormholeAdaptor = [];
   if (wormholeGateway) {
     debug && console.log(`Deploying WormholeAdaptor...`);
     WormholeAdaptor = await new WormholeAdaptor__factory(deployer).deploy(
@@ -165,6 +201,7 @@ export const deploy = async (
       diamonds.Diamond.address,
       pauser
     );
+    updatedConstructorArgs.WormholeAdaptor = [wormholeGateway, diamonds.Diamond.address, pauser];
     debug && console.log(`WormholeAdaptor: ${WormholeAdaptor.address}`);
     await waitSec(5);
   }
@@ -181,7 +218,7 @@ export const deploy = async (
   await transferOwnership(contracts.CCMPExecutor, owner, debug);
   await transferOwnership(ICCMPGateway__factory.connect(contracts.Diamond.address, deployer), owner, debug);
 
-  return contracts;
+  return { contracts, constructorArgs: updatedConstructorArgs };
 };
 
 export const deploySampleContract = async (ccmpExecutor: string, debug: boolean = false): Promise<SampleContract> => {

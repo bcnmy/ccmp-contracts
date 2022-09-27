@@ -39,12 +39,3 @@ export const verifyImplementation = async (proxyAddress: string) => {
     console.log(`Failed to verify Contract ${implementationAddress} `, e);
   }
 };
-
-export const verifyCCMPContracts = async (contracts: CCMPContracts) => {
-  for (const [key, contract] of Object.entries(contracts)) {
-    if (contract) {
-      console.log(`Verifying Contract ${key}...`);
-      await verifyImplementation(contract.address);
-    }
-  }
-};

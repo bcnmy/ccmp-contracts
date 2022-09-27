@@ -1,40 +1,68 @@
 import { ethers } from "hardhat";
-import { CCMPGateway__factory, SampleContract__factory } from "../../typechain-types";
+import { ICCMPGateway__factory, SampleContract__factory } from "../../typechain-types";
 import { getCCMPMessagePayloadFromSourceTx } from "./utils";
 import { NodeHttpTransport } from "@improbable-eng/grpc-web-node-http-transport";
-import { getSignedVAA, getEmitterAddressEth, parseSequenceFromLogEth } from "@certusone/wormhole-sdk";
-import type { CCMPMessageStruct } from "../../typechain-types/contracts/CCMPGateway";
+import { getSignedVAA, getEmitterAddressEth, parseSequenceFromLogEth, ChainName } from "@certusone/wormhole-sdk";
+import type { CCMPMessageStruct } from "../../typechain-types/contracts/interfaces/ICCMPRouterAdaptor";
 
-/**
- * Polygon:
- * Contracts: 
-   CCMPGateway: 0xdB44222Ca41a66F334201d9716D5472742913fE4
-   CCMPExecutor: 0xbf6Fa3c4aF92cdA0125320855412d48d304E26c2
-   WormholeAdaptor: 0x30AAf26d3ebe9ba1510707c89e510c1fffd5d2B3
-   Axelar Adaptor: 0x8Cf61439Cb1d9468a4Bf37BA57A048eC1dA475A1
-   sampleContract: 0x50216dD1B7B9D4F8ccdA2d122678E7a58F69D56d
- */
+const contracts = {
+  80001: {
+    CCMPExecutor: "0xAe4D41d1105896FC976e19681A42d3057Ee6c528",
+    AxelarAdaptor: "0xB6A1c1BdfA09520C6fc9c0657Efc9df756e02132",
+    WormholeAdaptor: "0x69a5eB67Dd7E9949C2D229E185273c30B3ab8C33",
+    CCMPConfigurationFacet: "0x690Af3506e145F14602C2f9f48b2c14C233bb1b3",
+    CCMPReceiverMessageFacet: "0x09d4b57F8ca6433FF5Df5Fac9C9BDCDfdc981e99",
+    CCMPSendMessageFacet: "0x1C1503a60A25FEe240EF5bF9996F8Fa39b14A195",
+    DiamondCutFacet: "0x12790f446A8Ab3359560cF6e513D6B4F73c85Ea3",
+    DiamondLoupeFacet: "0x61ec1d2f679e81Db68F4c809474C0D2A55496671",
+    DiamondInit: "0x9ab126305CbC757bF035d6b4d549675FdBE5f1B5",
+    Diamond: "0x5dB92fdAC16d027A3Fef6f438540B5818b6f66D5",
+    sampleContract: "0x9B9A1bE28bB12C78f0D02400D8755591Cd517739",
 
-/**
- * Goerli:
- * Contracts: 
-   CCMPGateway: 0x58dFB44951948b39a5E9ED2172c53E9a47bF1Dff
-   CCMPExecutor: 0x19347b86a9d3ea4D3CAC4155e5585FEC0Df88BB2
-   WormholeAdaptor: 0x0fBBe55CFCEa316250b821F5c1ba91F0fc4fb425
-   sampleContract: 0x27299702283E766A701258B5dFaa949c90574918*
- */
+    wormholeBridgeAddress: "0x0CBE91CF822c73C2315FB05100C2F714765d5c20",
+    emitterChain: "polygon" as ChainName,
+  },
+  43113: {
+    CCMPExecutor: "0x320D8cfCA5d07FB88230626b12672708511B23D9",
+    AxelarAdaptor: "0xAdE6090f102BD0A71D2521d962e8E49e57fD1fba",
+    WormholeAdaptor: "0x41614647D4316230F11F1688a23A3DD3E92bcad5",
+    CCMPConfigurationFacet: "0x05e2861f30D818488D6470073F4b5342c571456a",
+    CCMPReceiverMessageFacet: "0xe001CD72Fd8DaB89DCb15D9AF878976C0661f19e",
+    CCMPSendMessageFacet: "0x8Fd6A634b9af487c005dB2c6bBc72fc50fdB55Da",
+    DiamondCutFacet: "0x50C45a33da35b9dD85c58C26589d68b15a95e9ed",
+    DiamondLoupeFacet: "0x79a76426Ba58aE18dAF6F1d17FD66FbAC4201be6",
+    DiamondInit: "0x1797DD06071319527d3C0d5ED19CeB46a56986cb",
+    Diamond: "0x53B309Ff259e568309A19810E3bF1647B6922afd",
+    sampleContract: "0xb145AF113BFa7bfe91E11F951d88d00B9127BBC9",
 
-const gatewayGoerli = "0x58dFB44951948b39a5E9ED2172c53E9a47bF1Dff";
-const wormholeAdapterGoerli = "0x0fBBe55CFCEa316250b821F5c1ba91F0fc4fb425";
-const sampleContractGoerli = "0xBA11fA3Af8CA0D2199CFe91eC4c25eaff54Badb4";
-const bridgeAddressGoerli = "0x706abc4E45D419950511e474C7B9Ed348A4a716c";
+    wormholeBridgeAddress: "0x7bbcE28e64B3F8b84d876Ab298393c38ad7aac4C",
+    emitterChain: "avalanche" as ChainName,
+  },
+};
 
-const gatewayMumbai = "0xdB44222Ca41a66F334201d9716D5472742913fE4";
-const wormholeAdaptorMumbai = "0xc919F44ff2ddBcD47cD8a3596dD8009f80Dbbb88";
-const sampleContractMumbai = "0x50216dD1B7B9D4F8ccdA2d122678E7a58F69D56d";
-const bridgeAddressMumbai = "0x0CBE91CF822c73C2315FB05100C2F714765d5c20";
+const chains = {
+  4002: {
+    url: process.env.FANTOM_TESTNET_URL!,
+  },
+  97: {
+    url: process.env.BSC_TESTNET_URL!,
+  },
+  80001: {
+    url: process.env.MUMBAI_URL!,
+  },
+  43113: {
+    url: process.env.FUJI_URL,
+  },
+};
 
-const emitterChain = "ethereum";
+const toChainId = 80001;
+const fromChainId = 43113;
+
+const fromContracts = contracts[fromChainId];
+const toContracts = contracts[toChainId];
+
+const fromChain = chains[fromChainId];
+const toChain = chains[toChainId];
 
 const wormholeRpcHost = "https://wormhole-v2-testnet-api.certus.one";
 
@@ -42,22 +70,34 @@ const abiCoder = new ethers.utils.AbiCoder();
 
 const CONSISTENCY_LEVEL = 1;
 
+const sourceGateway = () => {
+  const provider = new ethers.providers.JsonRpcProvider(fromChain.url);
+  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
+  const gateway = ICCMPGateway__factory.connect(fromContracts.Diamond, wallet);
+  return gateway;
+};
+
+const exitGateway = () => {
+  const provider = new ethers.providers.JsonRpcProvider(toChain.url);
+  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
+  const gateway = ICCMPGateway__factory.connect(toContracts.Diamond, wallet);
+  return gateway;
+};
+
 const getVaa = async (sourceTxHash: string): Promise<Uint8Array> => {
-  const emitter = getEmitterAddressEth(wormholeAdapterGoerli);
-  console.log(`Emitter Address for Wormhole Adapter goerli: ${emitter}`);
+  const emitter = getEmitterAddressEth(fromContracts.WormholeAdaptor);
+  console.log(`Emitter Address for Wormhole Adapter: ${emitter}`);
 
   const receipt = await ethers.provider.getTransactionReceipt(sourceTxHash);
-
-  console.log(receipt);
-  const sequence = parseSequenceFromLogEth(receipt, bridgeAddressGoerli);
-  console.log(`Sequence for Wormhole Adapter Goerli: ${sequence}`);
+  const sequence = parseSequenceFromLogEth(receipt, fromContracts.wormholeBridgeAddress);
+  console.log(`Sequence for Wormhole Adapter: ${sequence}`);
 
   console.log(`Getting VAA for source transaction ${sourceTxHash}...`);
   return new Promise<Uint8Array>((resolve, reject) => {
     const id = setInterval(async () => {
       try {
-        console.log(wormholeRpcHost, emitterChain, emitter, sequence);
-        const { vaaBytes } = await getSignedVAA(wormholeRpcHost, emitterChain, emitter, sequence, {
+        console.log(wormholeRpcHost, fromContracts.emitterChain, emitter, sequence);
+        const { vaaBytes } = await getSignedVAA(wormholeRpcHost, fromContracts.emitterChain, emitter, sequence, {
           transport: NodeHttpTransport(),
         });
         clearInterval(id);
@@ -71,11 +111,11 @@ const getVaa = async (sourceTxHash: string): Promise<Uint8Array> => {
 
 const executeApprovedTransaction = async (txHash: string, message: CCMPMessageStruct, vaa: Uint8Array) => {
   console.log(`Executing source transaction ${txHash} on exit chain...`);
-  const provider = new ethers.providers.JsonRpcProvider(process.env.MUMBAI_URL);
-  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
-  const gateway = CCMPGateway__factory.connect(gatewayMumbai, wallet);
+  const gateway = exitGateway();
+
   try {
-    const { hash, wait } = await gateway.receiveMessage(message, vaa, {
+    console.log(message);
+    const { hash, wait } = await gateway.receiveMessage(message, vaa, false, {
       gasPrice: ethers.utils.parseUnits("50", "gwei"),
       // gasLimit: 1000000,
     });
@@ -95,13 +135,27 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
   }
 };
 
+const preCheck = async () => {
+  const fromGateway = sourceGateway();
+  const toGateway = exitGateway();
+
+  if ((await fromGateway.gateway(toChainId)) === ethers.constants.AddressZero) {
+    console.log(`Gateway not set on source chain`);
+    await (await fromGateway.setGateway(toChainId, toContracts.Diamond)).wait();
+  }
+
+  if ((await toGateway.gateway(fromChainId)) === ethers.constants.AddressZero) {
+    console.log(`Gateway not set on exit chain`);
+    await (await toGateway.setGateway(fromChainId, fromContracts.Diamond)).wait();
+  }
+};
+
 (async () => {
-  const [signer] = await ethers.getSigners();
-  const networkId = (await ethers.provider.getNetwork()).chainId;
+  await preCheck();
 
-  const gateway = CCMPGateway__factory.connect(gatewayGoerli, signer);
+  const gateway = sourceGateway();
 
-  const sampleContract = SampleContract__factory.connect(sampleContractGoerli, signer);
+  const sampleContract = SampleContract__factory.connect(fromContracts.sampleContract, gateway.signer);
   const calldata = sampleContract.interface.encodeFunctionData("emitEvent", ["Hello World"]);
 
   try {
@@ -110,22 +164,22 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
       "wormhole",
       [
         {
-          to: sampleContractMumbai,
+          to: toContracts.sampleContract,
           _calldata: calldata,
         },
         {
-          to: sampleContractMumbai,
+          to: toContracts.sampleContract,
           _calldata: calldata,
         },
         {
-          to: sampleContractMumbai,
+          to: toContracts.sampleContract,
           _calldata: calldata,
         },
       ],
       {
         feeTokenAddress: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
         feeAmount: 0,
-        relayer: gatewayMumbai,
+        relayer: "0x0000000000000000000000000000000000000001",
       },
       abiCoder.encode(["uint256"], [CONSISTENCY_LEVEL]),
       {
@@ -134,7 +188,7 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
     );
 
     console.log(`Source chain hash: ${hash}`);
-    await wait();
+    await wait(1);
 
     const ccmpMessage = await getCCMPMessagePayloadFromSourceTx(hash);
 

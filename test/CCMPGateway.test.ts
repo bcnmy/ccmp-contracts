@@ -64,8 +64,8 @@ describe("CCMPGateway", async function () {
 
     MockWormholeGateway = await new MockWormhole__factory(owner).deploy();
 
-    const { Diamond } = await deployGateway(pauser.address);
-    CCMPGateway = ICCMPGateway__factory.connect(Diamond.address, owner);
+    const { contracts: Diamond } = await deployGateway(pauser.address);
+    CCMPGateway = ICCMPGateway__factory.connect(Diamond.Diamond.address, owner);
 
     CCMPExecutor = await new CCMPExecutor__factory(owner).deploy(CCMPGateway.address);
     await CCMPGateway.setCCMPExecutor(CCMPExecutor.address);
