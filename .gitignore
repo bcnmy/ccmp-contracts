@@ -9,5 +9,6 @@ cache
 .openzeppelin
 *.log*
 .DS_Store
+.vscode
 
 

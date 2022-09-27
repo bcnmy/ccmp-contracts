@@ -2,8 +2,7 @@
 
 pragma solidity 0.8.16;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 
 /**
  * @dev Contract module which allows children to implement an emergency stop
@@ -14,7 +13,7 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
  * the functions of your contract. Note that they will not be pausable by
  * simply including this module, only once the modifiers are put in place.
  */
-abstract contract Pausable is Initializable, PausableUpgradeable {
+abstract contract PausableBase is Pausable {
     address private _pauser;
 
     event PauserChanged(
@@ -22,13 +21,8 @@ abstract contract Pausable is Initializable, PausableUpgradeable {
         address indexed newPauser
     );
 
-    /**
-     * @dev The pausable constructor sets the original `pauser` of the contract to the sender
-     * account & Initializes the contract in unpaused state..
-     */
-    function __Pausable_init(address pauser) internal onlyInitializing {
+    constructor(address pauser) Pausable() {
         require(pauser != address(0), "Pauser Address cannot be 0");
-        __Pausable_init();
         _pauser = pauser;
     }
 
@@ -37,6 +31,13 @@ abstract contract Pausable is Initializable, PausableUpgradeable {
      */
     function isPauser(address pauser) public view returns (bool) {
         return pauser == _pauser;
+    }
+
+    /**
+     * @return address Address of Pauser
+     */
+    function getPauser() external view returns (address) {
+        return _pauser;
     }
 
     /**

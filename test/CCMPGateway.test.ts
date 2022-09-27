@@ -3,10 +3,14 @@ import { expect } from "chai";
 import { BigNumber } from "ethers";
 import { ethers, upgrades } from "hardhat";
 import { smock, FakeContract } from "@defi-wonderland/smock";
-
+import { CCMPMessagePayloadStruct, CCMPMessageStruct } from "../typechain-types/contracts/CCMPGateway";
+import { Structs } from "../typechain-types/contracts/interfaces/IWormhole";
+import { GasFeePaymentArgsStruct } from "../typechain-types/contracts/CCMPGateway";
+import { parseUnits } from "ethers/lib/utils";
+import { use } from "chai";
 import {
-  CCMPGateway,
-  CCMPExecutor,
+  ICCMPGateway,
+  ICCMPGateway__factory,
   AxelarAdaptor,
   WormholeAdaptor,
   SampleContract,
@@ -14,14 +18,21 @@ import {
   IAxelarGateway,
   IAxelarGateway__factory,
   MockWormhole,
-  IHyphenLiquidityPool,
-  IHyphenLiquidityPool__factory,
+  ERC20Token,
+  SampleContract__factory,
+  CCMPExecutor,
+  CCMPExecutor__factory,
+  AxelarAdaptor__factory,
+  WormholeAdaptor__factory,
+  CCMPHelper__factory,
+  ERC20Token__factory,
+  MockWormhole__factory,
 } from "../typechain-types";
-import { CCMPMessagePayloadStruct, CCMPMessageStruct } from "../typechain-types/contracts/CCMPAdaptor";
-import { Structs } from "../typechain-types/contracts/interfaces/IWormhole";
-import { GasFeePaymentArgsStruct } from "../typechain-types/contracts/AxelarAdaptor";
+import { deployGateway } from "../scripts/deploy/deploy";
 
-const NATIVE = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+const NATIVE = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+
+use(smock.matchers);
 
 describe("CCMPGateway", async function () {
   let owner: SignerWithAddress,
@@ -30,64 +41,60 @@ describe("CCMPGateway", async function () {
     charlie: SignerWithAddress,
     trustedForwarder: SignerWithAddress,
     pauser: SignerWithAddress;
-  let CCMPGateway: CCMPGateway,
+  let CCMPGateway: ICCMPGateway,
     CCMPExecutor: CCMPExecutor,
     AxelarAdaptor: AxelarAdaptor,
     WormholeAdaptor: WormholeAdaptor,
     MockAxelarGateway: FakeContract<IAxelarGateway>,
     MockWormholeGateway: MockWormhole,
-    MockHyphen: FakeContract<IHyphenLiquidityPool>,
     CCMPHelper: CCMPHelper,
-    SampleContract: SampleContract;
+    Token: ERC20Token,
+    SampleContract: SampleContract,
+    SampleContractMock: FakeContract<SampleContract>;
   const abiCoder = new ethers.utils.AbiCoder();
 
   const getSampleCalldata = (message: string) => SampleContract.interface.encodeFunctionData("emitEvent", [message]);
+  const getSampleCalldataWithValidation = (message: string) =>
+    SampleContract.interface.encodeFunctionData("emitWithValidation", [message]);
 
   beforeEach(async function () {
     [owner, alice, bob, charlie, trustedForwarder, pauser] = await ethers.getSigners();
+
     MockAxelarGateway = await smock.fake(IAxelarGateway__factory.abi);
-    MockHyphen = await smock.fake(IHyphenLiquidityPool__factory.abi);
-    MockWormholeGateway = (await (await ethers.getContractFactory("MockWormhole", owner)).deploy()) as MockWormhole;
-    CCMPGateway = (await upgrades.deployProxy(await ethers.getContractFactory("CCMPGateway"), [
-      trustedForwarder.address,
-      pauser.address,
-    ])) as CCMPGateway;
-    CCMPExecutor = (await upgrades.deployProxy(await ethers.getContractFactory("CCMPExecutor"), [
-      CCMPGateway.address,
-      MockHyphen.address,
-      pauser.address,
-    ])) as CCMPExecutor;
+
+    MockWormholeGateway = await new MockWormhole__factory(owner).deploy();
+
+    const { Diamond } = await deployGateway(pauser.address);
+    CCMPGateway = ICCMPGateway__factory.connect(Diamond.address, owner);
+
+    CCMPExecutor = await new CCMPExecutor__factory(owner).deploy(CCMPGateway.address);
     await CCMPGateway.setCCMPExecutor(CCMPExecutor.address);
-    AxelarAdaptor = (await upgrades.deployProxy(await ethers.getContractFactory("AxelarAdaptor"), [
+
+    AxelarAdaptor = await new AxelarAdaptor__factory(owner).deploy(
       MockAxelarGateway.address,
       CCMPGateway.address,
-      trustedForwarder.address,
-      pauser.address,
-    ])) as AxelarAdaptor;
-    WormholeAdaptor = (await upgrades.deployProxy(await ethers.getContractFactory("WormholeAdaptor"), [
+      pauser.address
+    );
+
+    WormholeAdaptor = await new WormholeAdaptor__factory(owner).deploy(
       MockWormholeGateway.address,
       CCMPGateway.address,
-      trustedForwarder.address,
-      pauser.address,
-    ])) as WormholeAdaptor;
-    SampleContract = (await (await ethers.getContractFactory("SampleContract")).deploy()) as SampleContract;
-    CCMPHelper = (await (await ethers.getContractFactory("CCMPHelper")).deploy()) as CCMPHelper;
+      pauser.address
+    );
+
+    SampleContract = await new SampleContract__factory(owner).deploy(CCMPExecutor.address);
+
+    SampleContractMock = await smock.fake(SampleContract__factory.abi);
+
+    CCMPHelper = await new CCMPHelper__factory(owner).deploy();
+
+    Token = (await upgrades.deployProxy(new ERC20Token__factory(owner), ["Token", "TKN", 18])) as ERC20Token;
+
+    for (const signer of [owner, alice, bob, charlie, trustedForwarder, pauser]) {
+      await Token.mint(signer.address, parseUnits("1000000", 18));
+    }
     const chainId = (await ethers.provider.getNetwork()).chainId;
     await AxelarAdaptor.setDestinationChainIdToName(chainId + 1, "test");
-  });
-
-  it("Should set Executor correctly", async function () {
-    await expect(CCMPGateway.setCCMPExecutor(CCMPExecutor.address))
-      .to.emit(CCMPGateway, "CCMPExecutorUpdated")
-      .withArgs(CCMPExecutor.address);
-
-    expect(await CCMPGateway.ccmpExecutor()).to.equal(CCMPExecutor.address);
-  });
-
-  it("Should prevent non owners from setting Executor", async function () {
-    await expect(CCMPGateway.connect(alice).setCCMPExecutor(CCMPExecutor.address)).to.be.revertedWith(
-      "Ownable: caller is not the owner"
-    );
   });
 
   it("Should manage adaptors correctly", async function () {
@@ -99,14 +106,31 @@ describe("CCMPGateway", async function () {
       .to.emit(CCMPGateway, "AdaptorUpdated")
       .withArgs("wormhole", WormholeAdaptor.address);
 
-    expect(await CCMPGateway.adaptors("axelar")).to.equal(AxelarAdaptor.address);
-    expect(await CCMPGateway.adaptors("wormhole")).to.equal(WormholeAdaptor.address);
+    expect(await CCMPGateway.routerAdator("axelar")).to.equal(AxelarAdaptor.address);
+    expect(await CCMPGateway.routerAdator("wormhole")).to.equal(WormholeAdaptor.address);
   });
 
   it("Should prevent non owners from setting adaptors", async function () {
-    await expect(CCMPGateway.connect(alice).setRouterAdaptor("wormhole", WormholeAdaptor.address)).to.be.revertedWith(
-      "Ownable: caller is not the owner"
-    );
+    await expect(CCMPGateway.connect(alice).setRouterAdaptor("wormhole", WormholeAdaptor.address)).to.be.reverted;
+  });
+
+  it("Should prevent non owners from changing pauser", async function () {
+    await expect(CCMPGateway.connect(alice).setPauser(bob.address)).to.be.reverted;
+  });
+
+  it("Should allow owner to change pauser", async function () {
+    await expect(CCMPGateway.setPauser(bob.address)).emit(CCMPGateway, "PauserUpdated").withArgs(bob.address);
+    expect(await CCMPGateway.pauser()).to.equal(bob.address);
+  });
+
+  it("Should allow pauser to pause and unpause", async function () {
+    await expect(CCMPGateway.connect(pauser).pause()).to.emit(CCMPGateway, "ContractPaused");
+    await expect(CCMPGateway.connect(pauser).unpause()).to.emit(CCMPGateway, "ContractUnpaused");
+  });
+
+  it("Should prevent non pauser from pausing or unpausing", async function () {
+    await expect(CCMPGateway.pause()).to.be.reverted;
+    await expect(CCMPGateway.unpause()).to.be.reverted;
   });
 
   it("Should set gateways correctly", async function () {
@@ -114,13 +138,11 @@ describe("CCMPGateway", async function () {
       .to.emit(CCMPGateway, "GatewayUpdated")
       .withArgs(10, CCMPGateway.address);
 
-    expect(await CCMPGateway.gateways(10)).to.equal(CCMPGateway.address);
+    expect(await CCMPGateway.gateway(10)).to.equal(CCMPGateway.address);
   });
 
   it("Should prevent non owners from setting gateway", async function () {
-    await expect(CCMPGateway.connect(alice).setGateway(10, CCMPGateway.address)).to.be.revertedWith(
-      "Ownable: caller is not the owner"
-    );
+    await expect(CCMPGateway.connect(alice).setGateway(10, CCMPGateway.address)).to.be.reverted;
   });
 
   describe("Sending Messages", async function () {
@@ -131,21 +153,19 @@ describe("CCMPGateway", async function () {
     beforeEach(async function () {
       payloads = [
         {
-          operationType: 0,
-          data: abiCoder.encode(["address", "bytes"], [SampleContract.address, getSampleCalldata("Hello World")]),
+          to: SampleContract.address,
+          _calldata: getSampleCalldata("Hello World"),
         },
         {
-          operationType: 0,
-          data: abiCoder.encode(["address", "bytes"], [SampleContract.address, getSampleCalldata("Hello World 2.0")]),
+          to: SampleContract.address,
+          _calldata: getSampleCalldata("Hello World 2.0"),
         },
       ];
 
       gasFeePaymentArgs = {
-        mode: 0,
         feeTokenAddress: NATIVE,
         feeAmount: 0,
         relayer: alice.address,
-        feeSourcePayloadIndex: 0,
       };
 
       MockAxelarGateway.validateContractCall.returns(true);
@@ -207,6 +227,25 @@ describe("CCMPGateway", async function () {
         .withArgs("No payload");
     });
 
+    it("Should revert if contract is paused", async function () {
+      await CCMPGateway.connect(pauser).pause();
+
+      const chainId = (await ethers.provider.getNetwork()).chainId;
+      await CCMPGateway.setRouterAdaptor("axelar", AxelarAdaptor.address);
+      await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
+
+      await expect(
+        CCMPGateway.sendMessage(
+          chainId + 1,
+          "axelar",
+          payloads,
+          gasFeePaymentArgs,
+
+          abiCoder.encode(["string"], [ethers.constants.AddressZero])
+        )
+      ).to.be.reverted;
+    });
+
     it("Should route payload if all checks are satisfied", async function () {
       const chainId = (await ethers.provider.getNetwork()).chainId;
       await CCMPGateway.setRouterAdaptor("axelar", AxelarAdaptor.address);
@@ -234,24 +273,24 @@ describe("CCMPGateway", async function () {
 
     beforeEach(async function () {
       chainId = (await ethers.provider.getNetwork()).chainId;
+
       payloads = [
         {
-          operationType: 0,
-          data: abiCoder.encode(["address", "bytes"], [SampleContract.address, getSampleCalldata("Hello World")]),
+          to: SampleContract.address,
+          _calldata: getSampleCalldata("Hello World"),
         },
         {
-          operationType: 0,
-          data: abiCoder.encode(["address", "bytes"], [SampleContract.address, getSampleCalldata("Hello World 2.0")]),
+          to: SampleContract.address,
+          _calldata: getSampleCalldata("Hello World 2.0"),
         },
       ];
 
       gasFeePaymentArgs = {
-        mode: 0,
         feeTokenAddress: NATIVE,
         feeAmount: 0,
         relayer: alice.address,
-        feeSourcePayloadIndex: 0,
       };
+
       message = {
         sender: owner.address,
         sourceGateway: CCMPGateway.address,
@@ -267,7 +306,7 @@ describe("CCMPGateway", async function () {
     });
 
     it("Should revert if source is not registered", async function () {
-      await expect(CCMPGateway.receiveMessage(message, emptyBytes))
+      await expect(CCMPGateway.receiveMessage(message, emptyBytes, false))
         .to.be.revertedWithCustomError(CCMPGateway, "InvalidSource")
         .withArgs(chainId + 1, CCMPGateway.address);
     });
@@ -276,7 +315,7 @@ describe("CCMPGateway", async function () {
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
 
       message.destinationChainId = 12321;
-      await expect(CCMPGateway.receiveMessage(message, emptyBytes))
+      await expect(CCMPGateway.receiveMessage(message, emptyBytes, false))
         .to.be.revertedWithCustomError(CCMPGateway, "WrongDestination")
         .withArgs(12321, CCMPGateway.address);
     });
@@ -285,7 +324,7 @@ describe("CCMPGateway", async function () {
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
 
       message.destinationGateway = bob.address;
-      await expect(CCMPGateway.receiveMessage(message, emptyBytes))
+      await expect(CCMPGateway.receiveMessage(message, emptyBytes, false))
         .to.be.revertedWithCustomError(CCMPGateway, "WrongDestination")
         .withArgs(chainId, bob.address);
     });
@@ -295,9 +334,9 @@ describe("CCMPGateway", async function () {
 
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
       await CCMPGateway.setRouterAdaptor("axelar", AxelarAdaptor.address);
-      await CCMPGateway.receiveMessage(message, emptyBytes);
+      await CCMPGateway.receiveMessage(message, emptyBytes, false);
 
-      await expect(CCMPGateway.receiveMessage(message, emptyBytes))
+      await expect(CCMPGateway.receiveMessage(message, emptyBytes, false))
         .to.be.revertedWithCustomError(CCMPGateway, "AlreadyExecuted")
         .withArgs(message.nonce);
     });
@@ -308,10 +347,21 @@ describe("CCMPGateway", async function () {
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
       await CCMPGateway.setRouterAdaptor("axelar", AxelarAdaptor.address);
 
-      await expect(CCMPGateway.receiveMessage(message, emptyBytes)).to.be.revertedWithCustomError(
+      await expect(CCMPGateway.receiveMessage(message, emptyBytes, false)).to.be.revertedWithCustomError(
         CCMPGateway,
         "VerificationFailed"
       );
+    });
+
+    it("Should revert if contract is paused", async function () {
+      await CCMPGateway.connect(pauser).pause();
+
+      MockAxelarGateway.validateContractCall.returns(true);
+
+      await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
+      await CCMPGateway.setRouterAdaptor("axelar", AxelarAdaptor.address);
+
+      expect(CCMPGateway.receiveMessage(message, emptyBytes, false)).to.be.reverted;
     });
 
     it("Should execute message if all checks are satisfied", async function () {
@@ -320,7 +370,7 @@ describe("CCMPGateway", async function () {
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
       await CCMPGateway.setRouterAdaptor("axelar", AxelarAdaptor.address);
 
-      const tx = CCMPGateway.receiveMessage(message, emptyBytes);
+      const tx = CCMPGateway.receiveMessage(message, emptyBytes, false);
 
       await expect(tx).to.emit(SampleContract, "SampleEvent").withArgs("Hello World");
       await expect(tx).to.emit(SampleContract, "SampleEvent").withArgs("Hello World 2.0");
@@ -331,6 +381,7 @@ describe("CCMPGateway", async function () {
     let payloads: CCMPMessagePayloadStruct[];
     let message: CCMPMessageStruct;
     let gasFeePaymentArgs: GasFeePaymentArgsStruct;
+    let chainId: number;
     const emptyBytes = abiCoder.encode(["bytes"], [ethers.constants.HashZero]);
 
     const sampleVmStruct: Structs.VMStruct = {
@@ -347,27 +398,23 @@ describe("CCMPGateway", async function () {
       hash: ethers.utils.keccak256(ethers.constants.AddressZero),
     };
 
-    gasFeePaymentArgs = {
-      mode: 0,
-      feeTokenAddress: NATIVE,
-      feeAmount: 0,
-      relayer: alice.address,
-      feeSourcePayloadIndex: 0,
-    };
-    let chainId: number;
-
     beforeEach(async function () {
       chainId = (await ethers.provider.getNetwork()).chainId;
       payloads = [
         {
-          operationType: 0,
-          data: abiCoder.encode(["address", "bytes"], [SampleContract.address, getSampleCalldata("Hello World")]),
+          to: SampleContract.address,
+          _calldata: getSampleCalldata("Hello World"),
         },
         {
-          operationType: 0,
-          data: abiCoder.encode(["address", "bytes"], [SampleContract.address, getSampleCalldata("Hello World 2.0")]),
+          to: SampleContract.address,
+          _calldata: getSampleCalldata("Hello World 2.0"),
         },
       ];
+      gasFeePaymentArgs = {
+        feeTokenAddress: NATIVE,
+        feeAmount: 0,
+        relayer: alice.address,
+      };
       message = {
         sender: owner.address,
         sourceGateway: CCMPGateway.address,
@@ -383,7 +430,7 @@ describe("CCMPGateway", async function () {
     });
 
     it("Should revert if source is not registered", async function () {
-      await expect(CCMPGateway.receiveMessage(message, emptyBytes))
+      await expect(CCMPGateway.receiveMessage(message, emptyBytes, false))
         .to.be.revertedWithCustomError(CCMPGateway, "InvalidSource")
         .withArgs(chainId + 1, CCMPGateway.address);
     });
@@ -392,7 +439,7 @@ describe("CCMPGateway", async function () {
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
 
       message.destinationChainId = 12321;
-      await expect(CCMPGateway.receiveMessage(message, emptyBytes))
+      await expect(CCMPGateway.receiveMessage(message, emptyBytes, false))
         .to.be.revertedWithCustomError(CCMPGateway, "WrongDestination")
         .withArgs(12321, CCMPGateway.address);
     });
@@ -401,7 +448,7 @@ describe("CCMPGateway", async function () {
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
 
       message.destinationGateway = bob.address;
-      await expect(CCMPGateway.receiveMessage(message, emptyBytes))
+      await expect(CCMPGateway.receiveMessage(message, emptyBytes, false))
         .to.be.revertedWithCustomError(CCMPGateway, "WrongDestination")
         .withArgs(chainId, bob.address);
     });
@@ -414,9 +461,9 @@ describe("CCMPGateway", async function () {
 
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
       await CCMPGateway.setRouterAdaptor("wormhole", WormholeAdaptor.address);
-      await CCMPGateway.receiveMessage(message, emptyBytes);
+      await CCMPGateway.receiveMessage(message, emptyBytes, false);
 
-      await expect(CCMPGateway.receiveMessage(message, emptyBytes))
+      await expect(CCMPGateway.receiveMessage(message, emptyBytes, false))
         .to.be.revertedWithCustomError(CCMPGateway, "AlreadyExecuted")
         .withArgs(message.nonce);
     });
@@ -427,7 +474,7 @@ describe("CCMPGateway", async function () {
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
       await CCMPGateway.setRouterAdaptor("wormhole", WormholeAdaptor.address);
 
-      await expect(CCMPGateway.receiveMessage(message, emptyBytes)).to.be.revertedWithCustomError(
+      await expect(CCMPGateway.receiveMessage(message, emptyBytes, false)).to.be.revertedWithCustomError(
         CCMPGateway,
         "VerificationFailed"
       );
@@ -443,10 +490,226 @@ describe("CCMPGateway", async function () {
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
       await CCMPGateway.setRouterAdaptor("wormhole", WormholeAdaptor.address);
 
-      const tx = CCMPGateway.receiveMessage(message, emptyBytes);
+      const tx = CCMPGateway.receiveMessage(message, emptyBytes, false);
 
       await expect(tx).to.emit(SampleContract, "SampleEvent").withArgs("Hello World");
       await expect(tx).to.emit(SampleContract, "SampleEvent").withArgs("Hello World 2.0");
+    });
+  });
+
+  describe("Fee Management", async function () {
+    let chainId: number;
+    let payloads: CCMPMessagePayloadStruct[];
+    let gasFeePaymentArgs: GasFeePaymentArgsStruct;
+    const emptyBytes = abiCoder.encode(["bytes"], [ethers.constants.HashZero]);
+    let routeArgs = emptyBytes;
+
+    beforeEach(async function () {
+      chainId = (await ethers.provider.getNetwork()).chainId;
+      payloads = [
+        {
+          to: SampleContract.address,
+          _calldata: getSampleCalldata("Hello World"),
+        },
+        {
+          to: SampleContract.address,
+          _calldata: getSampleCalldata("Hello World 2.0"),
+        },
+      ];
+
+      gasFeePaymentArgs = {
+        feeTokenAddress: NATIVE,
+        feeAmount: 0,
+        relayer: alice.address,
+      };
+
+      await CCMPGateway.setGateway(1, CCMPGateway.address);
+      await CCMPGateway.setRouterAdaptor("wormhole", WormholeAdaptor.address);
+    });
+
+    it("Should allow fee to be paid separately in native tokens", async function () {
+      gasFeePaymentArgs.feeAmount = parseUnits("1", 18);
+      gasFeePaymentArgs.relayer = charlie.address;
+
+      await expect(
+        CCMPGateway.sendMessage(1, "wormhole", payloads, gasFeePaymentArgs, routeArgs, {
+          value: gasFeePaymentArgs.feeAmount,
+        })
+      )
+        .to.emit(CCMPGateway, "FeePaid")
+        .withArgs(NATIVE, gasFeePaymentArgs.feeAmount, charlie.address);
+
+      await expect(() =>
+        CCMPGateway.sendMessage(1, "wormhole", payloads, gasFeePaymentArgs, routeArgs, {
+          value: gasFeePaymentArgs.feeAmount,
+        })
+      ).to.changeEtherBalances([owner, charlie], [gasFeePaymentArgs.feeAmount.mul(-1), gasFeePaymentArgs.feeAmount]);
+    });
+
+    it("Should revert if there is a mismatch in native token fee amount", async function () {
+      gasFeePaymentArgs.feeAmount = parseUnits("1", 18);
+      gasFeePaymentArgs.relayer = charlie.address;
+
+      await expect(
+        CCMPGateway.sendMessage(1, "wormhole", payloads, gasFeePaymentArgs, routeArgs, {
+          value: gasFeePaymentArgs.feeAmount.sub(1),
+        })
+      ).to.be.revertedWithCustomError(CCMPGateway, "NativeAmountMismatch");
+    });
+
+    it("Shoud allow fee to be paid separately in ERC20 tokens", async function () {
+      gasFeePaymentArgs.feeAmount = parseUnits("1", 18);
+      gasFeePaymentArgs.relayer = charlie.address;
+      gasFeePaymentArgs.feeTokenAddress = Token.address;
+
+      await Token.approve(CCMPGateway.address, gasFeePaymentArgs.feeAmount.mul(2));
+
+      await expect(CCMPGateway.sendMessage(1, "wormhole", payloads, gasFeePaymentArgs, routeArgs))
+        .to.emit(CCMPGateway, "FeePaid")
+        .withArgs(Token.address, gasFeePaymentArgs.feeAmount, charlie.address);
+
+      await expect(() =>
+        CCMPGateway.sendMessage(1, "wormhole", payloads, gasFeePaymentArgs, routeArgs, {
+          value: gasFeePaymentArgs.feeAmount,
+        })
+      ).to.changeTokenBalances(
+        Token,
+        [owner, charlie],
+        [gasFeePaymentArgs.feeAmount.mul(-1), gasFeePaymentArgs.feeAmount]
+      );
+    });
+
+    it("Shoud revert if user has insufficient tokens", async function () {
+      await Token.transfer(alice.address, await Token.balanceOf(owner.address));
+
+      gasFeePaymentArgs.feeAmount = parseUnits("1", 18);
+      gasFeePaymentArgs.relayer = charlie.address;
+      gasFeePaymentArgs.feeTokenAddress = Token.address;
+
+      await Token.approve(CCMPGateway.address, gasFeePaymentArgs.feeAmount);
+
+      await expect(CCMPGateway.sendMessage(1, "wormhole", payloads, gasFeePaymentArgs, routeArgs)).to.be.reverted;
+    });
+  });
+
+  describe("Message Execution", async function () {
+    let chainId: number;
+    let gasFeePaymentArgs: GasFeePaymentArgsStruct;
+    let message: CCMPMessageStruct;
+    const emptyBytes = abiCoder.encode(["bytes"], [ethers.constants.HashZero]);
+    let routeArgs = emptyBytes;
+
+    beforeEach(async function () {
+      chainId = (await ethers.provider.getNetwork()).chainId;
+
+      gasFeePaymentArgs = {
+        feeTokenAddress: NATIVE,
+        feeAmount: 0,
+        relayer: alice.address,
+      };
+
+      message = {
+        sender: owner.address,
+        sourceGateway: CCMPGateway.address,
+        sourceAdaptor: WormholeAdaptor.address,
+        sourceChainId: 1,
+        destinationGateway: CCMPGateway.address,
+        destinationChainId: chainId,
+        routerAdaptor: "wormhole",
+        nonce: BigNumber.from(chainId + 1).mul(BigNumber.from(2).mul(128)),
+        gasFeePaymentArgs: gasFeePaymentArgs,
+        payload: [],
+      };
+
+      await CCMPGateway.setGateway(1, CCMPGateway.address);
+      await CCMPGateway.setRouterAdaptor("wormhole", WormholeAdaptor.address);
+    });
+
+    it("Should be able to execute contract calls", async function () {
+      const payload: CCMPMessagePayloadStruct = {
+        to: SampleContractMock.address,
+        _calldata: getSampleCalldata("Hello World"),
+      };
+
+      message.payload = [payload];
+      const messageHash = await CCMPHelper.hash(message);
+      await MockWormholeGateway.setValidationState(true);
+      await MockWormholeGateway.setPayload(messageHash);
+
+      await CCMPGateway.receiveMessage(message, emptyBytes, false);
+
+      expect(SampleContractMock.emitEvent).to.have.been.calledWith("Hello World");
+    });
+
+    it("Should revert if contract call fails", async function () {
+      const payload: CCMPMessagePayloadStruct = {
+        to: SampleContractMock.address,
+        _calldata: getSampleCalldata("Hello World"),
+      };
+
+      const revertMessage = "REVERT_TEST";
+
+      message.payload = [payload];
+
+      const messageHash = await CCMPHelper.hash(message);
+      SampleContractMock.emitEvent.reverts(revertMessage);
+      await MockWormholeGateway.setValidationState(true);
+      await MockWormholeGateway.setPayload(messageHash);
+
+      await expect(CCMPGateway.receiveMessage(message, emptyBytes, false))
+        .to.be.revertedWithCustomError(CCMPGateway, "ExternalCallFailed")
+        .withArgs(0, SampleContractMock.address, "0x");
+    });
+
+    it("Should not revert if contract call fails and parital execution is allowed", async function () {
+      const payload: CCMPMessagePayloadStruct = {
+        to: SampleContractMock.address,
+        _calldata: getSampleCalldata("Hello World"),
+      };
+
+      const revertMessage = "REVERT_TEST";
+
+      message.payload = [payload];
+
+      const messageHash = await CCMPHelper.hash(message);
+      SampleContractMock.emitEvent.reverts(revertMessage);
+      await MockWormholeGateway.setValidationState(true);
+      await MockWormholeGateway.setPayload(messageHash);
+
+      await expect(CCMPGateway.receiveMessage(message, emptyBytes, true)).to.not.be.reverted;
+    });
+
+    it("Should emit valid origin details", async function () {
+      const payload: CCMPMessagePayloadStruct = {
+        to: SampleContract.address,
+        _calldata: getSampleCalldataWithValidation("Hello World"),
+      };
+
+      message.payload = [payload];
+      const messageHash = await CCMPHelper.hash(message);
+      await MockWormholeGateway.setValidationState(true);
+      await MockWormholeGateway.setPayload(messageHash);
+
+      await expect(CCMPGateway.receiveMessage(message, emptyBytes, false))
+        .to.emit(SampleContract, "SampleEventExtended")
+        .withArgs("Hello World", 1, owner.address);
+    });
+
+    it("Should revert if message is executed from a contract other than Gateway", async function () {
+      const payload: CCMPMessagePayloadStruct = {
+        to: SampleContract.address,
+        _calldata: getSampleCalldataWithValidation("Hello World"),
+      };
+
+      message.payload = [payload];
+      const messageHash = await CCMPHelper.hash(message);
+      await MockWormholeGateway.setValidationState(true);
+      await MockWormholeGateway.setPayload(messageHash);
+
+      await expect(SampleContract.emitWithValidation("Hello World")).to.be.revertedWithCustomError(
+        SampleContract,
+        "InvalidOrigin"
+      );
     });
   });
 });

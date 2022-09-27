@@ -1,13 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-import "../structures/CrossChainMessage.sol";
+pragma solidity 0.8.16;
 
 interface ICCMPExecutor {
-    function executeCCMPMessage(CCMPMessage calldata _message) external;
-
-    function processCCMPMessageOnSourceChain(CCMPMessage calldata _message)
+    function execute(address _to, bytes calldata _calldata)
         external
-        payable
-        returns (CCMPMessage memory);
+        returns (bool success, bytes memory returndata);
 }

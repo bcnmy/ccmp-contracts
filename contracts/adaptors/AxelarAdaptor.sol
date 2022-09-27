@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import "./interfaces/IAxelarGateway.sol";
-import "./structures/CrossChainMessage.sol";
+import "../interfaces/IAxelarGateway.sol";
+import "../structures/CrossChainMessage.sol";
 
-import "./CCMPAdaptor.sol";
+import "./base/CCMPAdaptorBase.sol";
 
 error AxelarAdaptorSourceChainNotSupported(uint256 chainId);
 error AxelarAdaptorDestinationChainNotSupported(uint256 chainId);
@@ -12,7 +12,7 @@ error AxelarAdaptorDestinationChainNotSupported(uint256 chainId);
 /// @title Axelar Adaptor
 /// @author ankur@biconomy.io
 /// @notice Adaptor for the Axelar protocol into the CCMP System
-contract AxelarAdaptor is CCMPAdaptor {
+contract AxelarAdaptor is CCMPAdaptorBase {
     using CCMPMessageUtils for CCMPMessage;
 
     mapping(uint256 => string) public destinationChainIdToName;
@@ -25,13 +25,11 @@ contract AxelarAdaptor is CCMPAdaptor {
     );
     event AxelarMessageRoutedViaWormhole();
 
-    function initialize(
+    constructor(
         address _axelarGateway,
         address _ccmpGateway,
-        address _trustedForwader,
         address _pauser
-    ) public initializer {
-        __Adaptor_init(_trustedForwader, _ccmpGateway, _pauser);
+    ) CCMPAdaptorBase(_ccmpGateway, _pauser) {
         axelarGateway = IAxelarGateway(_axelarGateway);
 
         // Setup Mainnet Chain ID to Names
@@ -124,4 +122,12 @@ contract AxelarAdaptor is CCMPAdaptor {
             _destinationChainName
         );
     }
+
+    // Required by Axelar, not used
+    function execute(
+        bytes32,
+        string calldata,
+        string calldata,
+        bytes calldata
+    ) external pure {}
 }

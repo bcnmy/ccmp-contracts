@@ -6,27 +6,15 @@ import "../interfaces/ICCMPRouterAdaptor.sol";
 
 // TODO: Optimize Structs for Packing
 
-enum CCMPOperation {
-    ContractCall,
-    TokenTransfer
-}
-
-enum GasFeePaymentMode {
-    ViaExtraTokenDeposit,
-    CutFromCrossChainTokenTransfer
-}
-
 struct CCMPMessagePayload {
-    CCMPOperation operationType;
-    bytes data;
+    address to;
+    bytes _calldata;
 }
 
 struct GasFeePaymentArgs {
-    GasFeePaymentMode mode;
     address feeTokenAddress;
     uint256 feeAmount;
     address relayer;
-    uint256 feeSourcePayloadIndex;
 }
 
 /*
@@ -42,8 +30,8 @@ struct GasFeePaymentArgs {
         "gasFeePaymentArgs": GasFeePaymentArgs,
         "payload": [
             {
-                "operationType": 0 / 1,
-                "data": "0xabc"
+                "to": 0xCONTRACT,
+                "_calldata": "0xabc"
             }
         ]
     }
@@ -75,11 +63,9 @@ library CCMPMessageUtils {
                     message.destinationChainId,
                     message.nonce,
                     message.routerAdaptor,
-                    message.gasFeePaymentArgs.mode,
                     message.gasFeePaymentArgs.feeTokenAddress,
                     message.gasFeePaymentArgs.feeAmount,
                     message.gasFeePaymentArgs.relayer,
-                    message.gasFeePaymentArgs.feeSourcePayloadIndex,
                     message.payload
                 )
             );

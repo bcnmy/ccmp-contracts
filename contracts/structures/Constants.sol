@@ -2,6 +2,6 @@
 pragma solidity 0.8.16;
 
 abstract contract Constants {
-    address public constant NATIVE_ADDRESS =
+    address internal constant NATIVE_ADDRESS =
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 }

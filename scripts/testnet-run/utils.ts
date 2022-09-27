@@ -1,8 +1,8 @@
 import { ethers } from "hardhat";
 import { CCMPGateway__factory } from "../../typechain-types";
-import type { CCMPMessageStruct } from "../../typechain-types/contracts/AxelarAdaptor";
+import type { CCMPMessageStruct } from "../../typechain-types/contracts/CCMPGateway";
 
-const CCMPMessageRoutedTopic = "0xfe1e7fb1915d5db248f6ae7bcdec9c3104ca4f9379a152d313349626504466f6";
+const CCMPMessageRoutedTopic = "0xd104ea90f9fae928714248aaeace6818d814f775ed2883b9286841dc71b66ada";
 
 export const getCCMPMessagePayloadFromSourceTx = async (txHash: string): Promise<CCMPMessageStruct> => {
   const [signer] = await ethers.getSigners();
@@ -23,6 +23,7 @@ export const getCCMPMessagePayloadFromSourceTx = async (txHash: string): Promise
     nonce,
     routerAdaptor,
     payload,
+    args,
   } = data.args;
   return {
     sender,
@@ -34,5 +35,6 @@ export const getCCMPMessagePayloadFromSourceTx = async (txHash: string): Promise
     nonce,
     routerAdaptor,
     payload,
+    gasFeePaymentArgs: args,
   };
 };

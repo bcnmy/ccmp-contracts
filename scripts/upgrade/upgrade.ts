@@ -8,7 +8,6 @@ const upgradeBuilder = (contractName: string) => async (proxyAddress: string) =>
 };
 
 export const upgradeCCMPGateway = upgradeBuilder("CCMPGateway");
-export const upgradeCCMPExecutor = upgradeBuilder("CCMPExecutor");
 export const upgradeAxelarAdaptor = upgradeBuilder("AxelarAdaptor");
 export const upgradeWormholeAdaptor = upgradeBuilder("WormholeAdaptor");
 
