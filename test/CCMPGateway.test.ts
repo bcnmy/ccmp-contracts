@@ -3,9 +3,12 @@ import { expect } from "chai";
 import { BigNumber } from "ethers";
 import { ethers, upgrades } from "hardhat";
 import { smock, FakeContract } from "@defi-wonderland/smock";
-import { CCMPMessagePayloadStruct, CCMPMessageStruct } from "../typechain-types/contracts/CCMPGateway";
+import {
+  CCMPMessagePayloadStruct,
+  CCMPMessageStruct,
+  GasFeePaymentArgsStruct,
+} from "../typechain-types/contracts/interfaces/ICCMPRouterAdaptor";
 import { Structs } from "../typechain-types/contracts/interfaces/IWormhole";
-import { GasFeePaymentArgsStruct } from "../typechain-types/contracts/CCMPGateway";
 import { parseUnits } from "ethers/lib/utils";
 import { use } from "chai";
 import {
