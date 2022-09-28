@@ -8,6 +8,8 @@ import "./base/CCMPAdaptorBase.sol";
 
 error AxelarAdaptorSourceChainNotSupported(uint256 chainId);
 error AxelarAdaptorDestinationChainNotSupported(uint256 chainId);
+error NotApprovedByGateway();
+error InvalidSender();
 
 /// @title Axelar Adaptor
 /// @author ankur@biconomy.io
@@ -15,15 +17,30 @@ error AxelarAdaptorDestinationChainNotSupported(uint256 chainId);
 contract AxelarAdaptor is CCMPAdaptorBase {
     using CCMPMessageUtils for CCMPMessage;
 
-    mapping(uint256 => string) public destinationChainIdToName;
+    mapping(uint256 => string) public chainIdToName;
+    mapping(string => string) public chainNameToAdaptorAddressChecksummed;
     IAxelarGateway public axelarGateway;
 
+    // Whether a message has been verified or not
+    mapping(bytes32 => bool) public messageHashVerified;
+
     event AxelarGatewayUpdated(address indexed newAxelarGateway);
-    event DestinationChainNameUpdated(
+    event ChainNameUpdated(
         uint256 indexed destinationChainId,
         string indexed destinationChainName
     );
+    event AxelarAdaptorAddressChecksummedUpdated(
+        string indexed chainName,
+        string indexed newAxelarAdaptorAddressChecksummed
+    );
     event AxelarMessageRouted();
+    event AxelarMessageVerified(
+        bytes32 commandId,
+        string indexed sourceChain,
+        string indexed sourceAddress,
+        bytes payload,
+        bytes32 indexed messageHash
+    );
 
     constructor(
         address _axelarGateway,
@@ -33,22 +50,22 @@ contract AxelarAdaptor is CCMPAdaptorBase {
         axelarGateway = IAxelarGateway(_axelarGateway);
 
         // Setup Mainnet Chain ID to Names
-        destinationChainIdToName[1313161554] = "aurora";
-        destinationChainIdToName[43114] = "Avalanche";
-        destinationChainIdToName[56] = "binance";
-        destinationChainIdToName[1] = "Ethereum";
-        destinationChainIdToName[250] = "Fantom";
-        destinationChainIdToName[1284] = "Moonbeam";
-        destinationChainIdToName[137] = "Polygon";
+        chainIdToName[1313161554] = "aurora";
+        chainIdToName[43114] = "Avalanche";
+        chainIdToName[56] = "binance";
+        chainIdToName[1] = "Ethereum";
+        chainIdToName[250] = "Fantom";
+        chainIdToName[1284] = "Moonbeam";
+        chainIdToName[137] = "Polygon";
 
         // Setup Testnet Chain ID to Names
-        destinationChainIdToName[1313161555] = "aurora";
-        destinationChainIdToName[43113] = "Avalanche";
-        destinationChainIdToName[97] = "binance";
-        destinationChainIdToName[3] = "Ethereum";
-        destinationChainIdToName[4002] = "Fantom";
-        destinationChainIdToName[1287] = "Moonbeam";
-        destinationChainIdToName[80001] = "Polygon";
+        chainIdToName[1313161555] = "aurora";
+        chainIdToName[43113] = "Avalanche";
+        chainIdToName[97] = "binance";
+        chainIdToName[3] = "Ethereum";
+        chainIdToName[4002] = "Fantom";
+        chainIdToName[1287] = "Moonbeam";
+        chainIdToName[80001] = "Polygon";
     }
 
     function updateAxelarGateway(IAxelarGateway _axelarGateway)
@@ -60,18 +77,24 @@ contract AxelarAdaptor is CCMPAdaptorBase {
         emit AxelarGatewayUpdated(address(_axelarGateway));
     }
 
-    function routePayload(
-        CCMPMessage calldata _message,
-        bytes calldata _routerArgs
-    ) external nonReentrant whenNotPaused onlyCCMPGateway {
-        string memory destinationChainName = destinationChainIdToName[
+    function routePayload(CCMPMessage calldata _message, bytes calldata)
+        external
+        nonReentrant
+        whenNotPaused
+        onlyCCMPGateway
+    {
+        string memory destinationChainName = chainIdToName[
             _message.destinationChainId
         ];
-        string memory destinationRouterAddress = abi.decode(
-            _routerArgs,
-            (string)
-        );
-        if (bytes(destinationChainName).length == 0) {
+        string
+            memory destinationRouterAddress = chainNameToAdaptorAddressChecksummed[
+                destinationChainName
+            ];
+
+        if (
+            bytes(destinationChainName).length == 0 ||
+            bytes(destinationRouterAddress).length == 0
+        ) {
             revert AxelarAdaptorDestinationChainNotSupported(
                 _message.destinationChainId
             );
@@ -86,48 +109,79 @@ contract AxelarAdaptor is CCMPAdaptorBase {
         emit AxelarMessageRouted();
     }
 
-    function verifyPayload(
-        CCMPMessage calldata _ccmpMessage,
-        bytes calldata _verificationData
-    ) external whenNotPaused nonReentrant returns (bool, string memory) {
-        bytes32 payloadHash = keccak256(abi.encode(_ccmpMessage.hash()));
-        (bytes32 commandId, string memory sourceAdapterAddressChecksummed) = abi
-            .decode(_verificationData, (bytes32, string));
-        string memory sourceChainName = destinationChainIdToName[
-            _ccmpMessage.sourceChainId
-        ];
-        if (bytes(sourceChainName).length == 0) {
-            revert AxelarAdaptorSourceChainNotSupported(
-                _ccmpMessage.sourceChainId
-            );
-        }
-        return (
-            axelarGateway.validateContractCall(
-                commandId,
-                sourceChainName,
-                sourceAdapterAddressChecksummed,
-                payloadHash
-            ),
-            ""
-        );
+    function verifyPayload(CCMPMessage calldata _ccmpMessage, bytes calldata)
+        external
+        view
+        whenNotPaused
+        returns (bool, string memory)
+    {
+        return
+            messageHashVerified[_ccmpMessage.hash()]
+                ? (true, "")
+                : (false, "ERR__MESSAGE_NOT_VERIFIED");
     }
 
-    function setDestinationChainIdToName(
-        uint256 _destinationChainId,
-        string calldata _destinationChainName
-    ) external whenNotPaused onlyOwner {
-        destinationChainIdToName[_destinationChainId] = _destinationChainName;
-        emit DestinationChainNameUpdated(
-            _destinationChainId,
-            _destinationChainName
-        );
-    }
-
-    // Required by Axelar, not used
     function execute(
-        bytes32,
-        string calldata,
-        string calldata,
-        bytes calldata
-    ) external pure {}
+        bytes32 commandId,
+        string calldata sourceChain,
+        string calldata sourceAddress,
+        bytes calldata payload
+    ) external {
+        bytes32 payloadHash = keccak256(payload);
+
+        if (
+            !axelarGateway.validateContractCall(
+                commandId,
+                sourceChain,
+                sourceAddress,
+                payloadHash
+            )
+        ) {
+            revert NotApprovedByGateway();
+        }
+
+        if (
+            keccak256(abi.encodePacked(sourceAddress)) !=
+            keccak256(
+                abi.encodePacked(
+                    chainNameToAdaptorAddressChecksummed[sourceChain]
+                )
+            )
+        ) {
+            revert InvalidSender();
+        }
+
+        bytes32 ccmpMessageHash = abi.decode(payload, (bytes32));
+        messageHashVerified[ccmpMessageHash] = true;
+
+        emit AxelarMessageVerified(
+            commandId,
+            sourceChain,
+            sourceAddress,
+            payload,
+            ccmpMessageHash
+        );
+    }
+
+    function setChainIdToName(uint256 _chainId, string calldata _chainName)
+        external
+        whenNotPaused
+        onlyOwner
+    {
+        chainIdToName[_chainId] = _chainName;
+        emit ChainNameUpdated(_chainId, _chainName);
+    }
+
+    function setAxelarAdaptorAddressChecksummed(
+        string calldata _chainName,
+        string calldata _adaptorAddressChecksummed
+    ) external whenNotPaused onlyOwner {
+        chainNameToAdaptorAddressChecksummed[
+            _chainName
+        ] = _adaptorAddressChecksummed;
+        emit AxelarAdaptorAddressChecksummedUpdated(
+            _chainName,
+            _adaptorAddressChecksummed
+        );
+    }
 }

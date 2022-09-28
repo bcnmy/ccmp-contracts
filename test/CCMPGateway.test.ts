@@ -97,7 +97,7 @@ describe("CCMPGateway", async function () {
       await Token.mint(signer.address, parseUnits("1000000", 18));
     }
     const chainId = (await ethers.provider.getNetwork()).chainId;
-    await AxelarAdaptor.setDestinationChainIdToName(chainId + 1, "test");
+    await AxelarAdaptor.setChainIdToName(chainId + 1, "test");
   });
 
   it("Should manage adaptors correctly", async function () {
@@ -253,17 +253,14 @@ describe("CCMPGateway", async function () {
       const chainId = (await ethers.provider.getNetwork()).chainId;
       await CCMPGateway.setRouterAdaptor("axelar", AxelarAdaptor.address);
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
+      await AxelarAdaptor.setChainIdToName(chainId + 1, "ethereum-test");
+      await AxelarAdaptor.setAxelarAdaptorAddressChecksummed(
+        "ethereum-test",
+        ethers.utils.getAddress(AxelarAdaptor.address)
+      );
 
-      await expect(
-        CCMPGateway.sendMessage(
-          chainId + 1,
-          "axelar",
-          payloads,
-          gasFeePaymentArgs,
-
-          abiCoder.encode(["string"], [ethers.constants.AddressZero])
-        )
-      ).to.not.be.reverted;
+      await expect(CCMPGateway.sendMessage(chainId + 1, "axelar", payloads, gasFeePaymentArgs, emptyBytes)).to.not.be
+        .reverted;
     });
   });
 
@@ -334,9 +331,21 @@ describe("CCMPGateway", async function () {
 
     it("Should revert if nonce is already used", async function () {
       MockAxelarGateway.validateContractCall.returns(true);
+      const messageHash = await CCMPHelper.hash(message);
 
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
       await CCMPGateway.setRouterAdaptor("axelar", AxelarAdaptor.address);
+      await AxelarAdaptor.setChainIdToName(chainId + 1, "ethereum-test");
+      await AxelarAdaptor.setAxelarAdaptorAddressChecksummed(
+        "ethereum-test",
+        ethers.utils.getAddress(AxelarAdaptor.address)
+      );
+      await AxelarAdaptor.execute(
+        ethers.utils.formatBytes32String("ethereum-test"),
+        "ethereum-test",
+        AxelarAdaptor.address,
+        abiCoder.encode(["bytes32"], [messageHash])
+      );
       await CCMPGateway.receiveMessage(message, emptyBytes, false);
 
       await expect(CCMPGateway.receiveMessage(message, emptyBytes, false))
@@ -368,10 +377,23 @@ describe("CCMPGateway", async function () {
     });
 
     it("Should execute message if all checks are satisfied", async function () {
+      const messageHash = await CCMPHelper.hash(message);
+
       MockAxelarGateway.validateContractCall.returns(true);
 
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
       await CCMPGateway.setRouterAdaptor("axelar", AxelarAdaptor.address);
+      await AxelarAdaptor.setChainIdToName(chainId + 1, "ethereum-test");
+      await AxelarAdaptor.setAxelarAdaptorAddressChecksummed(
+        "ethereum-test",
+        ethers.utils.getAddress(AxelarAdaptor.address)
+      );
+      await AxelarAdaptor.execute(
+        ethers.utils.formatBytes32String("ethereum-test"),
+        "ethereum-test",
+        AxelarAdaptor.address,
+        abiCoder.encode(["bytes32"], [messageHash])
+      );
 
       const tx = CCMPGateway.receiveMessage(message, emptyBytes, false);
 
