@@ -16,7 +16,7 @@ const batchHelperAbi = JSON.parse(
 const contracts = {
   80001: {
     CCMPExecutor: "0xAe4D41d1105896FC976e19681A42d3057Ee6c528",
-    AxelarAdaptor: "0xB6A1c1BdfA09520C6fc9c0657Efc9df756e02132",
+    AxelarAdaptor: "0x2BFA42C7359E789b2A78612B79510d09660B2E16",
     WormholeAdaptor: "0x69a5eB67Dd7E9949C2D229E185273c30B3ab8C33",
     CCMPConfigurationFacet: "0x690Af3506e145F14602C2f9f48b2c14C233bb1b3",
     CCMPReceiverMessageFacet: "0x09d4b57F8ca6433FF5Df5Fac9C9BDCDfdc981e99",
@@ -41,7 +41,7 @@ const contracts = {
   },
   43113: {
     CCMPExecutor: "0x320D8cfCA5d07FB88230626b12672708511B23D9",
-    AxelarAdaptor: "0xAdE6090f102BD0A71D2521d962e8E49e57fD1fba",
+    AxelarAdaptor: "0x2aC78FF75EC3E1349fcC2d2ea30cf56318f93f25",
     WormholeAdaptor: "0x41614647D4316230F11F1688a23A3DD3E92bcad5",
     CCMPConfigurationFacet: "0x05e2861f30D818488D6470073F4b5342c571456a",
     CCMPReceiverMessageFacet: "0xe001CD72Fd8DaB89DCb15D9AF878976C0661f19e",

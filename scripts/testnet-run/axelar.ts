@@ -3,30 +3,55 @@ import { ICCMPGateway__factory } from "../../typechain-types";
 import { SampleContract__factory } from "../../typechain-types";
 import { AxelarGMPRecoveryAPI, Environment, GatewayTx } from "@axelar-network/axelarjs-sdk";
 import { GMPStatus } from "@axelar-network/axelarjs-sdk/dist/src/libs/TransactionRecoveryApi/AxelarRecoveryApi";
-import type { CCMPMessageStruct } from "../../typechain-types/contracts/CCMPGateway";
 import { getCCMPMessagePayloadFromSourceTx } from "./utils";
+import { ChainName } from "@certusone/wormhole-sdk";
+import type { CCMPMessageStruct } from "../../typechain-types/contracts/interfaces/ICCMPGateway.sol/ICCMPGateway";
 
 const contracts = {
-  4002: {
-    CCMPGateway: "0xaA02b9E819321838c932B0eD3e1dBE75F0CFAD5a",
-    CCMPExecutor: "0x4bc978BDA72711fb1b10a2D990768cc08ad91253",
-    AxelarAdaptor: "0x4F93dBD44B74B5f401AFeB934DD6210204875796",
-    WormholeAdaptor: "0x2b7F95cb023a8346a57993B9585a524cbD485f91",
-    sampleContract: "0x882a62Cfc40D191b5F32ab8C42FFac6393Cf298f",
-  },
-  97: {
-    CCMPGateway: "0x57101E1129E8E32c5D54bCe46a1c0528161c0079",
-    CCMPExecutor: "0xa3d42d67eAA9a5168B468DcB2507E244DCfb35cf",
-    AxelarAdaptor: "0xcC3671499BC2a96792f01B039DEF9E7B812beCF9",
-    WormholeAdaptor: "0xb0617498576Fbe331dB4724fEB697197038A7dB5",
-    sampleContract: "0x964AFBf634DB15bb0a9122bae90eD8FaAC760179",
-  },
   80001: {
-    CCMPGateway: "0x9E224d8e8a88c48994E120B299dC7C78EbAeE5De",
-    CCMPExecutor: "0xc34FC692537C51c949E2D4B62635F032153Fcc48",
-    AxelarAdaptor: "0x6D59D60778C68B5FA85fd77965580Fe9f09b4ec8",
-    WormholeAdaptor: "0x511274aAF461D40C1911900DC5aF4bFbe3c354bD",
-    sampleContract: "0xb28500030E6738Be0540551B5b78C447e746b2d2",
+    CCMPExecutor: "0xAe4D41d1105896FC976e19681A42d3057Ee6c528",
+    AxelarAdaptor: "0x2BFA42C7359E789b2A78612B79510d09660B2E16",
+    WormholeAdaptor: "0x69a5eB67Dd7E9949C2D229E185273c30B3ab8C33",
+    CCMPConfigurationFacet: "0x690Af3506e145F14602C2f9f48b2c14C233bb1b3",
+    CCMPReceiverMessageFacet: "0x09d4b57F8ca6433FF5Df5Fac9C9BDCDfdc981e99",
+    CCMPSendMessageFacet: "0x1C1503a60A25FEe240EF5bF9996F8Fa39b14A195",
+    DiamondCutFacet: "0x12790f446A8Ab3359560cF6e513D6B4F73c85Ea3",
+    DiamondLoupeFacet: "0x61ec1d2f679e81Db68F4c809474C0D2A55496671",
+    DiamondInit: "0x9ab126305CbC757bF035d6b4d549675FdBE5f1B5",
+    Diamond: "0x5dB92fdAC16d027A3Fef6f438540B5818b6f66D5",
+    sampleContract: "0x9B9A1bE28bB12C78f0D02400D8755591Cd517739",
+
+    wormholeBridgeAddress: "0x0CBE91CF822c73C2315FB05100C2F714765d5c20",
+    emitterChain: "polygon" as ChainName,
+
+    hyphen: "0xDe4e4CDa407Eee8d9E76261a1F2d229A572743dE",
+    token: "0xeaBc4b91d9375796AA4F69cC764A4aB509080A58",
+    lpToken: "0x48E2577e5f781CBb3374912a31b1aa39c9E11d39",
+    liquidityProviders: "0xFD210117F5b9d98Eb710295E30FFF77dF2d80002",
+    liquidityFarming: "0xf97859fb869329933b40F36A86E7e44f334Ed16a",
+    decimals: 18,
+
+    batchHelper: "0xa759C8Db00DadBE0599E3a38B19B5C0E12e43BBe",
+  },
+  43113: {
+    CCMPExecutor: "0x320D8cfCA5d07FB88230626b12672708511B23D9",
+    AxelarAdaptor: "0x2aC78FF75EC3E1349fcC2d2ea30cf56318f93f25",
+    WormholeAdaptor: "0x41614647D4316230F11F1688a23A3DD3E92bcad5",
+    CCMPConfigurationFacet: "0x05e2861f30D818488D6470073F4b5342c571456a",
+    CCMPReceiverMessageFacet: "0xe001CD72Fd8DaB89DCb15D9AF878976C0661f19e",
+    CCMPSendMessageFacet: "0x8Fd6A634b9af487c005dB2c6bBc72fc50fdB55Da",
+    DiamondCutFacet: "0x50C45a33da35b9dD85c58C26589d68b15a95e9ed",
+    DiamondLoupeFacet: "0x79a76426Ba58aE18dAF6F1d17FD66FbAC4201be6",
+    DiamondInit: "0x1797DD06071319527d3C0d5ED19CeB46a56986cb",
+    Diamond: "0x53B309Ff259e568309A19810E3bF1647B6922afd",
+    sampleContract: "0xb145AF113BFa7bfe91E11F951d88d00B9127BBC9",
+
+    wormholeBridgeAddress: "0x7bbcE28e64B3F8b84d876Ab298393c38ad7aac4C",
+    emitterChain: "avalanche" as ChainName,
+
+    hyphen: "0xb726675394b2ddee2c897ad31a62c7545ad7c68d",
+    token: "0xC74dB45a7D3416249763c151c6324Ceb6B3217fd",
+    decimals: 6,
   },
 };
 
@@ -40,12 +65,18 @@ const chains = {
   80001: {
     url: process.env.MUMBAI_URL!,
   },
+  43113: {
+    url: process.env.FUJI_URL!,
+  },
 };
 
-const fromContracts = contracts[97];
-const toContracts = contracts[80001];
+const fromChainId = 80001;
+const toChainId = 43113;
 
-const toChain = chains[80001];
+const fromContracts = contracts[fromChainId];
+const toContracts = contracts[toChainId];
+
+const toChain = chains[toChainId];
 
 const sdk = new AxelarGMPRecoveryAPI({
   environment: Environment.TESTNET,
@@ -74,7 +105,7 @@ const waitUntilTxStatus = async (txHash: string, expectedStatus: GMPStatus[]) =>
 const executeApprovedTransaction = async (txHash: string, message: CCMPMessageStruct) => {
   console.log(`Executing source transaction message ${txHash} on exit chain...`);
   const { AxelarAdaptor: AxelarAdaptorFrom } = fromContracts;
-  const { CCMPGateway: CCMPGatewayAddrTo } = toContracts;
+  const { Diamond: CCMPGatewayAddrTo } = toContracts;
   const provider = new ethers.providers.JsonRpcProvider(toChain.url);
 
   const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
@@ -111,7 +142,7 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
 (async () => {
   const [signer] = await ethers.getSigners();
 
-  const { CCMPGateway: CCMPGatewayFromAddr } = fromContracts;
+  const { Diamond: CCMPGatewayFromAddr } = fromContracts;
   const { sampleContract: SampleContractToAddr, AxelarAdaptor: AxelarAdaptorToAddr } = toContracts;
 
   const gateway = ICCMPGateway__factory.connect(CCMPGatewayFromAddr, signer);
@@ -121,7 +152,7 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
 
   try {
     const { hash, wait } = await gateway.sendMessage(
-      80001,
+      toChainId,
       "axelar",
       [
         {
@@ -142,7 +173,10 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
         feeAmount: 0,
         relayer: signer.address,
       },
-      abiCoder.encode(["string"], [AxelarAdaptorToAddr])
+      abiCoder.encode(["string"], [AxelarAdaptorToAddr]),
+      {
+        // gasLimit: 1000000,
+      }
     );
 
     console.log(`Source chain hash: ${hash}`);
@@ -155,7 +189,7 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
 
     await executeApprovedTransaction(hash, ccmpMessage);
   } catch (e) {
-    console.error(`Error executing transaction`);
+    console.error(`Error executing transaction`, e);
     const errorData = (e as any).error?.data;
     if (errorData) {
       console.log(errorData);

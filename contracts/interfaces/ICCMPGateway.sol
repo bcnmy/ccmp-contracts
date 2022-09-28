@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "../structures/CrossChainMessage.sol";
-import "../interfaces/ICCMPRouterAdaptor.sol";
+import "./ICCMPRouterAdaptor.sol";
 import "./ICCMPExecutor.sol";
 
 interface ICCMPGatewayBase {
