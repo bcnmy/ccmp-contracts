@@ -31,6 +31,10 @@ contract AbacusAdapter is
         uint256 indexed sourceChainId,
         address sender
     );
+    event AbacusAdaptorUpdated(
+        uint256 indexed chainId,
+        address indexed newAbacusAdaptor
+    );
 
     // Abacus Domain ID to Chain ID
     mapping(uint256 => uint32) public chainIdToDomainId;
@@ -101,23 +105,35 @@ contract AbacusAdapter is
         );
     }
 
-    function routePayload(
-        CCMPMessage calldata _message,
-        bytes calldata _routerArgs
-    ) external nonReentrant whenNotPaused onlyCCMPGateway {
+    function routePayload(CCMPMessage calldata _message, bytes calldata)
+        external
+        nonReentrant
+        whenNotPaused
+        onlyCCMPGateway
+    {
         uint32 destinationChainDomainId = chainIdToDomainId[
             _message.destinationChainId
         ];
-        bytes32 destinationRouterAddress = abi.decode(_routerArgs, (bytes32));
-        if (destinationChainDomainId == 0) {
+        address destinationRouterAddress = chainIdToAbacusAdaptor[
+            _message.destinationChainId
+        ];
+
+        if (
+            destinationChainDomainId == 0 ||
+            destinationRouterAddress == address(0)
+        ) {
             revert AbacusAdapterDestinationChainUnsupported(
                 _message.destinationChainId
             );
         }
 
+        bytes32 destinationRouterAddressEncoded = TypeCasts.addressToBytes32(
+            chainIdToAbacusAdaptor[_message.destinationChainId]
+        );
+
         uint256 messageId = _outbox().dispatch(
             destinationChainDomainId,
-            destinationRouterAddress,
+            destinationRouterAddressEncoded,
             abi.encode(_message.hash())
         );
 
@@ -147,5 +163,13 @@ contract AbacusAdapter is
         onlyOwner
     {
         _updateDomainId(_chainId, _domainId);
+    }
+
+    function setAbacusAdaptor(uint256 _chainId, address _abacusAdaptor)
+        external
+        onlyOwner
+    {
+        chainIdToAbacusAdaptor[_chainId] = _abacusAdaptor;
+        emit AbacusAdaptorUpdated(_chainId, _abacusAdaptor);
     }
 }

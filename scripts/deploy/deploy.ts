@@ -14,6 +14,7 @@ import {
   DiamondCutFacet__factory,
   DiamondLoupeFacet__factory,
   CCMPReceiverMessageFacet__factory,
+  AbacusAdapter__factory,
   Diamond__factory,
   CCMPConfigurationFacet,
   CCMPSendMessageFacet,
@@ -23,6 +24,7 @@ import {
   CCMPReceiverMessageFacet,
   Diamond,
   ICCMPGateway__factory,
+  AbacusAdapter,
 } from "../../typechain-types";
 import { Contract } from "ethers";
 import { FacetCutAction, getSelectors } from "./utils";
@@ -30,6 +32,7 @@ import { DiamondArgsStruct } from "../../typechain-types/contracts/gateway/Diamo
 
 const AxelarAdaptorKey = "axelar";
 const WormholeAdaptorKey = "wormhole";
+const AbacusAdaptorKey = "abacus";
 
 const waitSec = async (n: number) => await new Promise((resolve) => setTimeout(resolve, n * 1000));
 
@@ -38,25 +41,27 @@ export type DeployParams = {
   pauser: string;
   axelarGateway?: string;
   wormholeGateway?: string;
+  abacusConnectionManager?: string;
+  abacusInterchainGasMaster?: string;
 };
 
 export type GatewayContracts = {
-  CCMPConfigurationFacet: CCMPConfigurationFacet;
-  CCMPReceiverMessageFacet: CCMPReceiverMessageFacet;
-  CCMPSendMessageFacet: CCMPSendMessageFacet;
-  DiamondCutFacet: DiamondCutFacet;
-  DiamondLoupeFacet: DiamondLoupeFacet;
-  DiamondInit: DiamondInit;
+  CCMPConfigurationFacet?: CCMPConfigurationFacet;
+  CCMPReceiverMessageFacet?: CCMPReceiverMessageFacet;
+  CCMPSendMessageFacet?: CCMPSendMessageFacet;
+  DiamondCutFacet?: DiamondCutFacet;
+  DiamondLoupeFacet?: DiamondLoupeFacet;
+  DiamondInit?: DiamondInit;
   Diamond: Diamond;
 };
 
 export type GatewayContractConstructorArgs = {
-  CCMPConfigurationFacet: any[];
-  CCMPReceiverMessageFacet: any[];
-  CCMPSendMessageFacet: any[];
-  DiamondCutFacet: any[];
-  DiamondLoupeFacet: any[];
-  DiamondInit: any[];
+  CCMPConfigurationFacet?: any[];
+  CCMPReceiverMessageFacet?: any[];
+  CCMPSendMessageFacet?: any[];
+  DiamondCutFacet?: any[];
+  DiamondLoupeFacet?: any[];
+  DiamondInit?: any[];
   Diamond: any[];
 };
 
@@ -64,12 +69,14 @@ export type CCMPContracts = {
   CCMPExecutor: CCMPExecutor;
   AxelarAdaptor?: AxelarAdaptor;
   WormholeAdaptor?: WormholeAdaptor;
+  AbacusAdaptor?: AbacusAdapter;
 } & GatewayContracts;
 
 export type CCMPContractsConstructorArgs = {
   CCMPExecutor: any[];
   AxelarAdaptor?: any[];
   WormholeAdaptor?: any[];
+  AbacusAdaptor?: any[];
 } & GatewayContractConstructorArgs;
 
 export const deployGateway = async (
@@ -167,7 +174,7 @@ export const deployGateway = async (
 };
 
 export const deploy = async (
-  { owner, pauser, axelarGateway, wormholeGateway }: DeployParams,
+  { owner, pauser, axelarGateway, wormholeGateway, abacusConnectionManager, abacusInterchainGasMaster }: DeployParams,
   debug: boolean = false
 ): Promise<{ contracts: CCMPContracts; constructorArgs: CCMPContractsConstructorArgs }> => {
   const [deployer] = await ethers.getSigners();
@@ -206,10 +213,32 @@ export const deploy = async (
     await waitSec(5);
   }
 
+  let AbacusAdaptor;
+  if (abacusConnectionManager && abacusInterchainGasMaster) {
+    debug && console.log(`Deploying AbacusAdapter...`);
+    AbacusAdaptor = await new AbacusAdapter__factory(deployer).deploy(
+      "0x5dB92fdAC16d027A3Fef6f438540B5818b6f66D5",
+      //diamonds.Diamond.address,
+      pauser,
+      abacusConnectionManager,
+      abacusInterchainGasMaster
+    );
+    updatedConstructorArgs.AbacusAdaptor = [
+      "0x5dB92fdAC16d027A3Fef6f438540B5818b6f66D5",
+      // diamonds.Diamond.address,
+      pauser,
+      abacusConnectionManager,
+      abacusInterchainGasMaster,
+    ];
+    debug && console.log(`AbacusAdapter: ${AbacusAdaptor.address}`);
+    await waitSec(5);
+  }
+
   const contracts: CCMPContracts = {
     CCMPExecutor,
     AxelarAdaptor,
     WormholeAdaptor,
+    AbacusAdaptor,
     ...diamonds,
   };
 
@@ -217,6 +246,15 @@ export const deploy = async (
 
   await transferOwnership(contracts.CCMPExecutor, owner, debug);
   await transferOwnership(ICCMPGateway__factory.connect(contracts.Diamond.address, deployer), owner, debug);
+  if (AxelarAdaptor) {
+    await transferOwnership(AxelarAdaptor, owner, debug);
+  }
+  if (WormholeAdaptor) {
+    await transferOwnership(WormholeAdaptor, owner, debug);
+  }
+  if (AbacusAdaptor) {
+    await transferOwnership(AbacusAdaptor, owner, debug);
+  }
 
   return { contracts, constructorArgs: updatedConstructorArgs };
 };
@@ -240,14 +278,21 @@ const configure = async (contracts: CCMPContracts, debug: boolean = false) => {
   debug && console.log(`Configuring CCMPGateway...`);
   const [deployer] = await ethers.getSigners();
 
-  const CCMPGateway = ICCMPGateway__factory.connect(contracts.Diamond.address, deployer);
+  if (!contracts.Diamond || !contracts.CCMPExecutor) {
+    return;
+  }
 
+  const CCMPGateway = ICCMPGateway__factory.connect(contracts.Diamond.address, deployer);
   if (contracts.AxelarAdaptor) {
     await (await CCMPGateway.setRouterAdaptor(AxelarAdaptorKey, contracts.AxelarAdaptor.address)).wait();
     await waitSec(5);
   }
   if (contracts.WormholeAdaptor) {
     await (await CCMPGateway.setRouterAdaptor(WormholeAdaptorKey, contracts.WormholeAdaptor.address)).wait();
+    await waitSec(5);
+  }
+  if (contracts.AbacusAdaptor) {
+    await (await CCMPGateway.setRouterAdaptor(AbacusAdaptorKey, contracts.AbacusAdaptor.address)).wait();
     await waitSec(5);
   }
   await CCMPGateway.setCCMPExecutor(contracts.CCMPExecutor.address);
