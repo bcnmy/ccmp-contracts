@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 import { deploy, deploySampleContract } from "./deploy";
 import type { DeployParams } from "./deploy";
-import { verifyCCMPContracts, verifyContract } from "../verify/verify";
+import { verifyContract } from "../verify/verify";
 
 const deployParamsBase = {
   owner: "0xDA861C9DccFf6d1fEf7Cae71B5b538AF25063404",
@@ -49,7 +49,7 @@ const deployParams: Record<number, DeployParams> = {
     throw new Error(`No deploy params for network ${networkId}`);
   }
 
-  const contracts = await deploy(params, true);
+  const { contracts, constructorArgs } = await deploy(params, true);
   const sampleContract = await deploySampleContract(contracts.CCMPExecutor.address);
 
   console.log("Contracts: ");
@@ -59,6 +59,8 @@ const deployParams: Record<number, DeployParams> = {
     }
   }
 
-  await verifyCCMPContracts(contracts);
-  await verifyContract(sampleContract.address, []);
+  for (const [key, contract] of Object.entries(contracts)) {
+    const contractName = key as keyof typeof constructorArgs;
+    await verifyContract(contract.address, constructorArgs[contractName] || []);
+  }
 })();

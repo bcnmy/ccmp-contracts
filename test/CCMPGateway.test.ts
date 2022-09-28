@@ -3,9 +3,12 @@ import { expect } from "chai";
 import { BigNumber } from "ethers";
 import { ethers, upgrades } from "hardhat";
 import { smock, FakeContract } from "@defi-wonderland/smock";
-import { CCMPMessagePayloadStruct, CCMPMessageStruct } from "../typechain-types/contracts/CCMPGateway";
+import {
+  CCMPMessagePayloadStruct,
+  CCMPMessageStruct,
+  GasFeePaymentArgsStruct,
+} from "../typechain-types/contracts/interfaces/ICCMPRouterAdaptor";
 import { Structs } from "../typechain-types/contracts/interfaces/IWormhole";
-import { GasFeePaymentArgsStruct } from "../typechain-types/contracts/CCMPGateway";
 import { parseUnits } from "ethers/lib/utils";
 import { use } from "chai";
 import {
@@ -64,8 +67,8 @@ describe("CCMPGateway", async function () {
 
     MockWormholeGateway = await new MockWormhole__factory(owner).deploy();
 
-    const { Diamond } = await deployGateway(pauser.address);
-    CCMPGateway = ICCMPGateway__factory.connect(Diamond.address, owner);
+    const { contracts: Diamond } = await deployGateway(pauser.address);
+    CCMPGateway = ICCMPGateway__factory.connect(Diamond.Diamond.address, owner);
 
     CCMPExecutor = await new CCMPExecutor__factory(owner).deploy(CCMPGateway.address);
     await CCMPGateway.setCCMPExecutor(CCMPExecutor.address);

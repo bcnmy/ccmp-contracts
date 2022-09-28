@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import { CCMPGateway__factory } from "../../typechain-types";
+import { ICCMPGateway__factory } from "../../typechain-types";
 import { SampleContract__factory } from "../../typechain-types";
 import { AxelarGMPRecoveryAPI, Environment, GatewayTx } from "@axelar-network/axelarjs-sdk";
 import { GMPStatus } from "@axelar-network/axelarjs-sdk/dist/src/libs/TransactionRecoveryApi/AxelarRecoveryApi";
@@ -78,7 +78,7 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
   const provider = new ethers.providers.JsonRpcProvider(toChain.url);
 
   const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
-  const gateway = CCMPGateway__factory.connect(CCMPGatewayAddrTo, wallet);
+  const gateway = ICCMPGateway__factory.connect(CCMPGatewayAddrTo, wallet);
   try {
     const { commandId } = (await sdk.queryExecuteParams(txHash)).data;
     // const commandId = "0xa1c6a58af35571dba84a8198a036d1548180438abfda616d09c1856b182d3769";
@@ -87,6 +87,7 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
     const { hash, wait } = await gateway.receiveMessage(
       message,
       abiCoder.encode(["bytes32", "string"], [commandId, ethers.utils.getAddress(AxelarAdaptorFrom)]),
+      false,
       {
         // gasPrice: ethers.utils.parseUnits("50", "gwei"),
         // gasLimit: 1000000,
@@ -113,7 +114,7 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
   const { CCMPGateway: CCMPGatewayFromAddr } = fromContracts;
   const { sampleContract: SampleContractToAddr, AxelarAdaptor: AxelarAdaptorToAddr } = toContracts;
 
-  const gateway = CCMPGateway__factory.connect(CCMPGatewayFromAddr, signer);
+  const gateway = ICCMPGateway__factory.connect(CCMPGatewayFromAddr, signer);
 
   const sampleContract = SampleContract__factory.connect(SampleContractToAddr, signer);
   const calldata = sampleContract.interface.encodeFunctionData("emitEvent", ["Hello World"]);
