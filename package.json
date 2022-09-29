@@ -31,7 +31,8 @@
     "dotenv": "^16.0.1",
     "hardhat-contract-sizer": "^2.6.1",
     "hardhat-gas-reporter": "^1.0.8",
-    "prettier-plugin-solidity": "^1.0.0-beta.24"
+    "prettier-plugin-solidity": "^1.0.0-beta.24",
+    "solidity-bytes-utils": "^0.8.0"
   },
   "scripts": {
     "compile": "hardhat compile",

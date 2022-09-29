@@ -41,6 +41,7 @@ export type DeployParams = {
   pauser: string;
   axelarGateway?: string;
   wormholeGateway?: string;
+  wormholeDeploymentMode?: 0 | 1;
   abacusConnectionManager?: string;
   abacusInterchainGasMaster?: string;
 };
@@ -174,7 +175,15 @@ export const deployGateway = async (
 };
 
 export const deploy = async (
-  { owner, pauser, axelarGateway, wormholeGateway, abacusConnectionManager, abacusInterchainGasMaster }: DeployParams,
+  {
+    owner,
+    pauser,
+    axelarGateway,
+    wormholeGateway,
+    wormholeDeploymentMode,
+    abacusConnectionManager,
+    abacusInterchainGasMaster,
+  }: DeployParams,
   debug: boolean = false
 ): Promise<{ contracts: CCMPContracts; constructorArgs: CCMPContractsConstructorArgs }> => {
   const [deployer] = await ethers.getSigners();
@@ -201,12 +210,13 @@ export const deploy = async (
 
   let WormholeAdaptor;
   updatedConstructorArgs.WormholeAdaptor = [];
-  if (wormholeGateway) {
+  if (wormholeGateway && wormholeDeploymentMode) {
     debug && console.log(`Deploying WormholeAdaptor...`);
     WormholeAdaptor = await new WormholeAdaptor__factory(deployer).deploy(
       wormholeGateway,
       diamonds.Diamond.address,
-      pauser
+      pauser,
+      wormholeDeploymentMode
     );
     updatedConstructorArgs.WormholeAdaptor = [wormholeGateway, diamonds.Diamond.address, pauser];
     debug && console.log(`WormholeAdaptor: ${WormholeAdaptor.address}`);

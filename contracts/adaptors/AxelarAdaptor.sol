@@ -68,15 +68,8 @@ contract AxelarAdaptor is CCMPAdaptorBase {
         chainIdToName[80001] = "Polygon";
     }
 
-    function updateAxelarGateway(IAxelarGateway _axelarGateway)
-        external
-        whenNotPaused
-        onlyOwner
-    {
-        axelarGateway = _axelarGateway;
-        emit AxelarGatewayUpdated(address(_axelarGateway));
-    }
-
+    /// @notice Called by the CCMP Gateway to route a message via Axelar
+    /// @param _message The message to be routed
     function routePayload(CCMPMessage calldata _message, bytes calldata)
         external
         nonReentrant
@@ -109,6 +102,10 @@ contract AxelarAdaptor is CCMPAdaptorBase {
         emit AxelarMessageRouted();
     }
 
+    /// @notice Called by the CCMP Gateway to verify a message routed via Axelar
+    /// @param _ccmpMessage The message to be verified
+    /// @return status Whether the message is verified or not
+    /// @return message Message/Error string
     function verifyPayload(CCMPMessage calldata _ccmpMessage, bytes calldata)
         external
         view
@@ -121,51 +118,58 @@ contract AxelarAdaptor is CCMPAdaptorBase {
                 : (false, "ERR__MESSAGE_NOT_VERIFIED");
     }
 
+    /// @notice Called by the Axelar Gateway to verify a message routed via Axelar
+    /// @param _commandId The command ID of the message to be verified
+    /// @param _sourceChain The source chain of the message to be verified
+    /// @param _sourceAddress The source address of the message to be verified
+    /// @param _payload The payload of the message to be verified
     function execute(
-        bytes32 commandId,
-        string calldata sourceChain,
-        string calldata sourceAddress,
-        bytes calldata payload
+        bytes32 _commandId,
+        string calldata _sourceChain,
+        string calldata _sourceAddress,
+        bytes calldata _payload
     ) external {
-        bytes32 payloadHash = keccak256(payload);
+        bytes32 payloadHash = keccak256(_payload);
 
+        // Call axelar gateway to validate contarct call
         if (
             !axelarGateway.validateContractCall(
-                commandId,
-                sourceChain,
-                sourceAddress,
+                _commandId,
+                _sourceChain,
+                _sourceAddress,
                 payloadHash
             )
         ) {
             revert NotApprovedByGateway();
         }
 
+        // Validate message origin
         if (
-            keccak256(abi.encodePacked(sourceAddress)) !=
+            keccak256(abi.encodePacked(_sourceAddress)) !=
             keccak256(
                 abi.encodePacked(
-                    chainNameToAdaptorAddressChecksummed[sourceChain]
+                    chainNameToAdaptorAddressChecksummed[_sourceChain]
                 )
             )
         ) {
             revert InvalidSender();
         }
 
-        bytes32 ccmpMessageHash = abi.decode(payload, (bytes32));
+        // Verify the message
+        bytes32 ccmpMessageHash = abi.decode(_payload, (bytes32));
         messageHashVerified[ccmpMessageHash] = true;
 
         emit AxelarMessageVerified(
-            commandId,
-            sourceChain,
-            sourceAddress,
-            payload,
+            _commandId,
+            _sourceChain,
+            _sourceAddress,
+            _payload,
             ccmpMessageHash
         );
     }
 
     function setChainIdToName(uint256 _chainId, string calldata _chainName)
         external
-        whenNotPaused
         onlyOwner
     {
         chainIdToName[_chainId] = _chainName;
@@ -175,7 +179,7 @@ contract AxelarAdaptor is CCMPAdaptorBase {
     function setAxelarAdaptorAddressChecksummed(
         string calldata _chainName,
         string calldata _adaptorAddressChecksummed
-    ) external whenNotPaused onlyOwner {
+    ) external onlyOwner {
         chainNameToAdaptorAddressChecksummed[
             _chainName
         ] = _adaptorAddressChecksummed;
@@ -183,5 +187,13 @@ contract AxelarAdaptor is CCMPAdaptorBase {
             _chainName,
             _adaptorAddressChecksummed
         );
+    }
+
+    function updateAxelarGateway(IAxelarGateway _axelarGateway)
+        external
+        onlyOwner
+    {
+        axelarGateway = _axelarGateway;
+        emit AxelarGatewayUpdated(address(_axelarGateway));
     }
 }

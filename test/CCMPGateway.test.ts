@@ -82,7 +82,8 @@ describe("CCMPGateway", async function () {
     WormholeAdaptor = await new WormholeAdaptor__factory(owner).deploy(
       MockWormholeGateway.address,
       CCMPGateway.address,
-      pauser.address
+      pauser.address,
+      1
     );
 
     SampleContract = await new SampleContract__factory(owner).deploy(CCMPExecutor.address);

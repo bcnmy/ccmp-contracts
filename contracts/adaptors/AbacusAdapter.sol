@@ -79,16 +79,22 @@ contract AbacusAdapter is
         _updateDomainId(137, 0x706f6c79);
     }
 
+    /// @notice Called by Abacus's Inbox Contract (onlyInbox) to verify a inbound CCMP Message
+    /// @param _origin The origin domain ID
+    /// @param _sender The sender contract on the source chain
+    /// @param _message The message to be verified
     function handle(
         uint32 _origin,
         bytes32 _sender,
         bytes calldata _message
     ) external onlyInbox {
+        // Check if the source chain is registered
         uint256 originChainId = domainIdToChainId[_origin];
         if (originChainId == 0 || originChainId == block.chainid) {
             revert InvalidOriginChain(_origin);
         }
 
+        // Ensure that the message is sent by the Abacus Adaptor on the source chain
         address sender = TypeCasts.bytes32ToAddress(_sender);
         if (sender != chainIdToAbacusAdaptor[originChainId]) {
             revert InvalidSender(sender, originChainId);
@@ -105,6 +111,8 @@ contract AbacusAdapter is
         );
     }
 
+    /// @notice Called by the CCMP Gateway to route a message via Abacus
+    /// @param _message The message to be routed
     function routePayload(CCMPMessage calldata _message, bytes calldata)
         external
         nonReentrant
@@ -140,6 +148,10 @@ contract AbacusAdapter is
         emit AbacusMessageRouted(messageId);
     }
 
+    /// @notice Called by the CCMP Gateway to verify a message routed via Abacus
+    /// @param _ccmpMessage The message to be verified
+    /// @return status Whether the message is verified or not
+    /// @return message Message/Error string
     function verifyPayload(CCMPMessage calldata _ccmpMessage, bytes calldata)
         external
         view
