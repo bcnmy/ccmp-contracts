@@ -1,17 +1,17 @@
 import { ethers } from "hardhat";
 import { ICCMPGateway__factory } from "../../typechain-types";
 import { SampleContract__factory } from "../../typechain-types";
-import { AxelarGMPRecoveryAPI, Environment, GatewayTx } from "@axelar-network/axelarjs-sdk";
-import { GMPStatus } from "@axelar-network/axelarjs-sdk/dist/src/libs/TransactionRecoveryApi/AxelarRecoveryApi";
 import { getCCMPMessagePayloadFromSourceTx } from "./utils";
-import { ChainName } from "@certusone/wormhole-sdk";
 import type { CCMPMessageStruct } from "../../typechain-types/contracts/interfaces/ICCMPGateway.sol/ICCMPGateway";
+import { AbacusCore, MultiProvider } from "@abacus-network/sdk";
 
 const contracts = {
   80001: {
     CCMPExecutor: "0xAe4D41d1105896FC976e19681A42d3057Ee6c528",
     AxelarAdaptor: "0x2BFA42C7359E789b2A78612B79510d09660B2E16",
     WormholeAdaptor: "0x69a5eB67Dd7E9949C2D229E185273c30B3ab8C33",
+    AbacusAdaptor: "0xBB5D00aF8A3B275Cb1f59950A0fF62a099a91810",
+
     CCMPConfigurationFacet: "0x690Af3506e145F14602C2f9f48b2c14C233bb1b3",
     CCMPReceiverMessageFacet: "0x09d4b57F8ca6433FF5Df5Fac9C9BDCDfdc981e99",
     CCMPSendMessageFacet: "0x1C1503a60A25FEe240EF5bF9996F8Fa39b14A195",
@@ -22,7 +22,6 @@ const contracts = {
     sampleContract: "0x9B9A1bE28bB12C78f0D02400D8755591Cd517739",
 
     wormholeBridgeAddress: "0x0CBE91CF822c73C2315FB05100C2F714765d5c20",
-    emitterChain: "polygon" as ChainName,
 
     hyphen: "0xDe4e4CDa407Eee8d9E76261a1F2d229A572743dE",
     token: "0xeaBc4b91d9375796AA4F69cC764A4aB509080A58",
@@ -37,6 +36,7 @@ const contracts = {
     CCMPExecutor: "0x320D8cfCA5d07FB88230626b12672708511B23D9",
     AxelarAdaptor: "0x2aC78FF75EC3E1349fcC2d2ea30cf56318f93f25",
     WormholeAdaptor: "0x41614647D4316230F11F1688a23A3DD3E92bcad5",
+    AbacusAdaptor: "0xFb41e96053608669d3B2D976577237684C71df11",
     CCMPConfigurationFacet: "0x05e2861f30D818488D6470073F4b5342c571456a",
     CCMPReceiverMessageFacet: "0xe001CD72Fd8DaB89DCb15D9AF878976C0661f19e",
     CCMPSendMessageFacet: "0x8Fd6A634b9af487c005dB2c6bBc72fc50fdB55Da",
@@ -47,7 +47,6 @@ const contracts = {
     sampleContract: "0xb145AF113BFa7bfe91E11F951d88d00B9127BBC9",
 
     wormholeBridgeAddress: "0x7bbcE28e64B3F8b84d876Ab298393c38ad7aac4C",
-    emitterChain: "avalanche" as ChainName,
 
     hyphen: "0xb726675394b2ddee2c897ad31a62c7545ad7c68d",
     token: "0xC74dB45a7D3416249763c151c6324Ceb6B3217fd",
@@ -70,60 +69,59 @@ const chains = {
   },
 };
 
-const fromChainId = 80001;
-const toChainId = 43113;
+const fromChainId = 43113;
+const toChainId = 80001;
 
 const fromContracts = contracts[fromChainId];
 const toContracts = contracts[toChainId];
 
+const fromChain = chains[fromChainId];
 const toChain = chains[toChainId];
 
-const sdk = new AxelarGMPRecoveryAPI({
-  environment: Environment.TESTNET,
-});
+const core = AbacusCore.fromEnvironment(
+  "testnet2",
+  new MultiProvider({
+    fuji: {
+      provider: new ethers.providers.JsonRpcProvider(chains[43113].url),
+    },
+    mumbai: {
+      provider: new ethers.providers.JsonRpcProvider(chains[80001].url),
+    },
+  })
+);
 
 const abiCoder = new ethers.utils.AbiCoder();
 
-const waitUntilTxStatus = async (txHash: string, expectedStatus: GMPStatus[]) => {
-  await new Promise<void>((resolve, reject) => {
-    const interval = setInterval(async () => {
-      try {
-        const status = await sdk.queryTransactionStatus(txHash);
-        console.log(`Status of Transaction Hash ${txHash}: ${status.status}`);
-        if (expectedStatus.includes(status.status)) {
-          console.log(`Transaction Hash ${txHash}: ${expectedStatus}`);
-          clearInterval(interval);
-          resolve();
-        }
-      } catch (e) {
-        console.error(`Error querying transaction status: ${e}`);
-      }
-    }, 1000);
-  });
+const waitUntilTxStatus = async (txHash: string) => {
+  console.log("Waiting for tx status...");
+  const fromProvider = new ethers.providers.JsonRpcProvider(fromChain.url);
+  const txReceipt = await fromProvider.getTransactionReceipt(txHash);
+
+  const id = setInterval(() => {
+    try {
+      const message = core.getDispatchedMessages(txReceipt);
+      console.log(message);
+    } catch (e) {
+      console.log(`Error getting dispatched receipt: ${e}`);
+    }
+  }, 5000);
+
+  console.log(await core.waitForMessageProcessing(txReceipt));
+  clearInterval(id);
 };
 
 const executeApprovedTransaction = async (txHash: string, message: CCMPMessageStruct) => {
   console.log(`Executing source transaction message ${txHash} on exit chain...`);
-  const { AxelarAdaptor: AxelarAdaptorFrom } = fromContracts;
   const { Diamond: CCMPGatewayAddrTo } = toContracts;
   const provider = new ethers.providers.JsonRpcProvider(toChain.url);
 
   const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
   const gateway = ICCMPGateway__factory.connect(CCMPGatewayAddrTo, wallet);
   try {
-    const { commandId } = (await sdk.queryExecuteParams(txHash)).data;
-    // const commandId = "0xa1c6a58af35571dba84a8198a036d1548180438abfda616d09c1856b182d3769";
-    const executeParams = await sdk.queryExecuteParams(txHash);
-    console.log(executeParams);
-    const { hash, wait } = await gateway.receiveMessage(
-      message,
-      abiCoder.encode(["bytes32", "string"], [commandId, ethers.utils.getAddress(AxelarAdaptorFrom)]),
-      false,
-      {
-        // gasPrice: ethers.utils.parseUnits("50", "gwei"),
-        // gasLimit: 1000000,
-      }
-    );
+    const { hash, wait } = await gateway.receiveMessage(message, abiCoder.encode(["string"], ["0x"]), false, {
+      // gasPrice: ethers.utils.parseUnits("50", "gwei"),
+      // gasLimit: 1000000,
+    });
     console.log(`Submitted exit transaction ${hash} on exit chain.`);
     const { blockNumber } = await wait();
     console.log(`Transaction ${hash} confirmed on exit chain at block ${blockNumber}`);
@@ -153,7 +151,7 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
   try {
     const { hash, wait } = await gateway.sendMessage(
       toChainId,
-      "axelar",
+      "abacus",
       [
         {
           to: SampleContractToAddr,
@@ -185,7 +183,7 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
     const ccmpMessage = await getCCMPMessagePayloadFromSourceTx(hash);
     console.log(ccmpMessage);
 
-    await waitUntilTxStatus(hash, [GMPStatus.DEST_EXECUTE_ERROR, GMPStatus.UNKNOWN_ERROR, GMPStatus.DEST_EXECUTED]);
+    await waitUntilTxStatus(hash);
 
     await executeApprovedTransaction(hash, ccmpMessage);
   } catch (e) {

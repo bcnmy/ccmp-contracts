@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@abacus-network/app": "^0.4.2-processtest",
+    "@abacus-network/sdk": "^0.4.3-processtest",
     "@axelar-network/axelarjs-sdk": "^0.11.4",
     "@certusone/wormhole-sdk": "^0.6.5",
     "@defi-wonderland/smock": "^2.2.0",
@@ -30,7 +31,8 @@
     "dotenv": "^16.0.1",
     "hardhat-contract-sizer": "^2.6.1",
     "hardhat-gas-reporter": "^1.0.8",
-    "prettier-plugin-solidity": "^1.0.0-beta.24"
+    "prettier-plugin-solidity": "^1.0.0-beta.24",
+    "solidity-bytes-utils": "^0.8.0"
   },
   "scripts": {
     "compile": "hardhat compile",

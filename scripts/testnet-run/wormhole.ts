@@ -2,7 +2,13 @@ import { ethers } from "hardhat";
 import { ERC20Token__factory, ICCMPGateway__factory, SampleContract__factory } from "../../typechain-types";
 import { getCCMPMessagePayloadFromSourceTx } from "./utils";
 import { NodeHttpTransport } from "@improbable-eng/grpc-web-node-http-transport";
-import { getSignedVAA, getEmitterAddressEth, parseSequenceFromLogEth, ChainName } from "@certusone/wormhole-sdk";
+import {
+  getSignedVAA,
+  getEmitterAddressEth,
+  parseSequenceFromLogEth,
+  ChainName,
+  IWormhole__factory,
+} from "@certusone/wormhole-sdk";
 import type { CCMPMessageStruct } from "../../typechain-types/contracts/interfaces/ICCMPRouterAdaptor";
 import { BigNumber } from "ethers";
 
@@ -16,8 +22,8 @@ const batchHelperAbi = JSON.parse(
 const contracts = {
   80001: {
     CCMPExecutor: "0xAe4D41d1105896FC976e19681A42d3057Ee6c528",
-    AxelarAdaptor: "0xB6A1c1BdfA09520C6fc9c0657Efc9df756e02132",
-    WormholeAdaptor: "0x69a5eB67Dd7E9949C2D229E185273c30B3ab8C33",
+    AxelarAdaptor: "0x2BFA42C7359E789b2A78612B79510d09660B2E16",
+    WormholeAdaptor: "0x428D93d5042bC2efda4f5402f55E5B7f0B8e3Ce8",
     CCMPConfigurationFacet: "0x690Af3506e145F14602C2f9f48b2c14C233bb1b3",
     CCMPReceiverMessageFacet: "0x09d4b57F8ca6433FF5Df5Fac9C9BDCDfdc981e99",
     CCMPSendMessageFacet: "0x1C1503a60A25FEe240EF5bF9996F8Fa39b14A195",
@@ -41,8 +47,8 @@ const contracts = {
   },
   43113: {
     CCMPExecutor: "0x320D8cfCA5d07FB88230626b12672708511B23D9",
-    AxelarAdaptor: "0xAdE6090f102BD0A71D2521d962e8E49e57fD1fba",
-    WormholeAdaptor: "0x41614647D4316230F11F1688a23A3DD3E92bcad5",
+    AxelarAdaptor: "0x2aC78FF75EC3E1349fcC2d2ea30cf56318f93f25",
+    WormholeAdaptor: "0x8C6ed76011b7d5ddcf8dA88687C4B5A7a4b79165",
     CCMPConfigurationFacet: "0x05e2861f30D818488D6470073F4b5342c571456a",
     CCMPReceiverMessageFacet: "0xe001CD72Fd8DaB89DCb15D9AF878976C0661f19e",
     CCMPSendMessageFacet: "0x8Fd6A634b9af487c005dB2c6bBc72fc50fdB55Da",
@@ -157,9 +163,15 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
 
   try {
     console.log(message);
+
+    const wormhole = IWormhole__factory.connect(toContracts.wormholeBridgeAddress, gateway.signer);
+
+    const vaaParsed = await wormhole.parseAndVerifyVM(vaa);
+    console.log("VAA: ", vaaParsed);
+
     const { hash, wait } = await gateway.receiveMessage(message, vaa, false, {
       gasPrice: ethers.utils.parseUnits("50", "gwei"),
-      gasLimit: 1000000,
+      // gasLimit: 1000000
     });
     console.log(`Submitted exit transaction ${hash} on exit chain.`);
     const { blockNumber } = await wait(5);
@@ -377,4 +389,4 @@ const hyphenDepositAndCallWithBatchHelper = async () => {
   }
 };
 
-hyphenDepositAndCallWithBatchHelper();
+simpleMessage();
