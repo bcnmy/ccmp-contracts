@@ -27,21 +27,19 @@ The `_payloads` argument is an array of the following form:
 ```
 [
     {
-        // 0 - Contract Call, 1 - Token Transfer (via Hyphen)
-        CCMPOperation operationType;         
+        // Address of contract on the destination chain
+        address to;
 
-        // For Contract Call, abi.encode(address, calldata)
-        // For Token Transfer, abi.encode(tokenAddress, receiver, amount)
-        //     TokenAddress can be set to 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE for native token
-        bytes data; 
+        // Calldata to execute on 'to'
+        bytes _calldata; 
     },
     {
-        CCMPOperation operationType;
-        bytes data;
+        address to;
+        bytes _calldata;
     },
     {
-        CCMPOperation operationType;
-        bytes data;
+        address to;
+        bytes _calldata;
     }...
 ]
 ```
