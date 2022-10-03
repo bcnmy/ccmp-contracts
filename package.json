@@ -1,5 +1,8 @@
 {
-  "name": "hardhat-project",
+  "name": "ccmp-contracts",
+  "version": "0.0.1",
+  "license": "MIT",
+  "description": "Biconomy's Cross Chain Messaging Protocol Aggregrator Contracts",
   "devDependencies": {
     "@ethersproject/abi": "^5.7.0",
     "@ethersproject/providers": "^5.7.0",
