@@ -1,6 +1,6 @@
 {
-  "name": "ccmp-contracts",
-  "version": "0.0.1",
+  "name": "@biconomy/ccmp-contracts",
+  "version": "0.0.2",
   "license": "MIT",
   "description": "Biconomy's Cross Chain Messaging Protocol Aggregrator Contracts",
   "devDependencies": {
@@ -42,6 +42,7 @@
     "deploy:testnet": "hardhat run scripts/deploy/testnet.ts",
     "verify": "hardhat verify",
     "test": "hardhat test",
-    "upgrade-contract": "hardhat run scripts/upgrade/upgrade.ts"
+    "upgrade-contract": "hardhat run scripts/upgrade/upgrade.ts",
+    "publisher": "yarn publish --access public --scope biconomy"
   }
 }
