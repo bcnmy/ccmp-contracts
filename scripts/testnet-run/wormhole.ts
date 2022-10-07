@@ -11,6 +11,7 @@ import {
 import type { CCMPMessageStruct } from "../../typechain-types/contracts/interfaces/ICCMPRouterAdaptor";
 import { BigNumber } from "ethers";
 import {
+  fromChain,
   fromContracts,
   toContracts,
   toChainId,
@@ -226,6 +227,7 @@ const hyphenDepositAndCallWithBatchHelper = async () => {
   const signerAddress = await gateway.signer.getAddress();
   const batchHelper = exitBatchHelper();
 
+  // Check Token Approval
   const approval = await token.allowance(signerAddress, fromContracts.hyphen);
   console.log(`Approval To Hyphen: ${approval.toString()}`);
   if (approval.lt(ethers.constants.MaxInt256.div(2))) {
@@ -234,6 +236,14 @@ const hyphenDepositAndCallWithBatchHelper = async () => {
   }
 
   try {
+    // Off Chain Call: Get Gas Fee Payment Args:
+    const gasFeePaymentArgs = {
+      feeTokenAddress: fromContracts.token,
+      feeAmount: BigNumber.from(10).mul(sourceDecimals),
+      relayer: "0x0000000000000000000000000000000000000001",
+    };
+
+    // Perform Source Chain Transaction
     const { hash, wait } = await hyphen.depositAndCall(
       {
         toChainId,
@@ -253,11 +263,8 @@ const hyphenDepositAndCallWithBatchHelper = async () => {
             ]),
           },
         ],
-        gasFeePaymentArgs: {
-          feeTokenAddress: fromContracts.token,
-          feeAmount: BigNumber.from(10).mul(sourceDecimals),
-          relayer: "0x0000000000000000000000000000000000000001",
-        },
+        //
+        gasFeePaymentArgs,
         adaptorName: "wormhole",
         routerArgs: abiCoder.encode(["uint256"], [CONSISTENCY_LEVEL]),
         hyphenArgs: [],
@@ -272,10 +279,12 @@ const hyphenDepositAndCallWithBatchHelper = async () => {
 
     console.log(`Source chain hash: ${hash}`);
 
+    // Parse Event And Get VAA
     const ccmpMessage = await getCCMPMessagePayloadFromSourceTx(hash);
-
     const vaa = await getVaa(hash);
 
+
+    // Perform Exit Transaction
     await executeApprovedTransaction(hash, ccmpMessage, vaa);
   } catch (e) {
     console.error(`Error executing transaction`);
