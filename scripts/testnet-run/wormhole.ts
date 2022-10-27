@@ -273,16 +273,15 @@ const hyphenDepositAndCallWithBatchHelper = async () => {
         gasLimit: 1000000,
       }
     );
-    await wait(1);
+    const receipt = await wait(1);
 
     // const hash = "0xf84a3b3c2ba05d6f12010311f5f8cbb03bd1b86a5e30737b884e3c61e8b37804";
 
-    console.log(`Source chain hash: ${hash}`);
+    console.log(`Source chain hash: ${hash}, blockNumber: ${receipt.blockNumber}`);
 
     // Parse Event And Get VAA
     const ccmpMessage = await getCCMPMessagePayloadFromSourceTx(hash);
     const vaa = await getVaa(hash);
-
 
     // Perform Exit Transaction
     await executeApprovedTransaction(hash, ccmpMessage, vaa);

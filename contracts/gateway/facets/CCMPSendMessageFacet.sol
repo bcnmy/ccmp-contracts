@@ -106,6 +106,9 @@ contract CCMPSendMessageFacet is ICCMPGatewaySender, Constants {
                     revert NativeTransferFailed(relayer, returndata);
                 }
             } else {
+                if(msg.value != 0) {
+                    revert NativeAmountMismatch();
+                }
                 IERC20(_message.gasFeePaymentArgs.feeTokenAddress)
                     .safeTransferFrom(
                         _message.sender,
