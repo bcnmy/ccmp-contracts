@@ -109,6 +109,7 @@ contract AxelarAdaptor is CCMPAdaptorBase {
     function verifyPayload(CCMPMessage calldata _ccmpMessage, bytes calldata)
         external
         view
+        virtual
         whenNotPaused
         returns (bool, string memory)
     {
