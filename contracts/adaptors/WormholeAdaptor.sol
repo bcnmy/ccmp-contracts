@@ -131,7 +131,13 @@ contract WormholeAdaptor is CCMPAdaptorBase {
     function verifyPayload(
         CCMPMessage calldata _ccmpMessage,
         bytes calldata _verificationData
-    ) external nonReentrant whenNotPaused returns (bool, string memory) {
+    )
+        external
+        virtual
+        nonReentrant
+        whenNotPaused
+        returns (bool, string memory)
+    {
         // Validate Via Wormhole
         (IWormhole.VM memory vm, bool valid, string memory reason) = wormhole
             .parseAndVerifyVM(_verificationData);
@@ -158,7 +164,7 @@ contract WormholeAdaptor is CCMPAdaptorBase {
         return (true, "");
     }
 
-    function _bytes32ToAddress(bytes32 _data) private pure returns (address s) {
+    function _bytes32ToAddress(bytes32 _data) internal pure returns (address s) {
         s = address(uint160(uint256(_data)));
     }
 }
