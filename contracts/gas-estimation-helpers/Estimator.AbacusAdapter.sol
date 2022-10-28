@@ -3,7 +3,7 @@ pragma solidity 0.8.16;
 
 import "../adaptors/AbacusAdapter.sol";
 
-contract EstimatorWormholeAdaptor is AbacusAdapter {
+contract EstimationHyperlaneAdapter is AbacusAdapter {
     using CCMPMessageUtils for CCMPMessage;
 
     constructor(
