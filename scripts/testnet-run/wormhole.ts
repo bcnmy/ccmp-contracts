@@ -236,7 +236,7 @@ const hyphenDepositAndCallWithBatchHelper = async () => {
   }
 
   try {
-    // Off Chain Call: Get Gas Fee Payment Args:
+    // TODO: Fetch via Off Chain Call
     const gasFeePaymentArgs = {
       feeTokenAddress: fromContracts.token,
       feeAmount: BigNumber.from(10).mul(sourceDecimals),
@@ -263,7 +263,6 @@ const hyphenDepositAndCallWithBatchHelper = async () => {
             ]),
           },
         ],
-        //
         gasFeePaymentArgs,
         adaptorName: "wormhole",
         routerArgs: abiCoder.encode(["uint256"], [CONSISTENCY_LEVEL]),
@@ -280,11 +279,11 @@ const hyphenDepositAndCallWithBatchHelper = async () => {
     console.log(`Source chain hash: ${hash}, blockNumber: ${receipt.blockNumber}`);
 
     // Parse Event And Get VAA
-    const ccmpMessage = await getCCMPMessagePayloadFromSourceTx(hash);
-    const vaa = await getVaa(hash);
+    // const ccmpMessage = await getCCMPMessagePayloadFromSourceTx(hash);
+    // const vaa = await getVaa(hash);
 
     // Perform Exit Transaction
-    await executeApprovedTransaction(hash, ccmpMessage, vaa);
+    // await executeApprovedTransaction(hash, ccmpMessage, vaa);
   } catch (e) {
     console.error(`Error executing transaction`);
     console.log(e);
