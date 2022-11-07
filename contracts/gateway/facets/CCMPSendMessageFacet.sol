@@ -67,12 +67,14 @@ contract CCMPSendMessageFacet is ICCMPGatewaySender, Constants {
             payload: _payloads
         });
 
-        _handleFee(message);
+        bytes32 messageHash = message.hash();
+
+        addGasFee(message.gasFeePaymentArgs, messageHash, message.sender);
 
         adaptor.routePayload(message, _routerArgs);
 
         emit CCMPMessageRouted(
-            message.hash(),
+            messageHash,
             message.sender,
             message.sourceGateway,
             message.sourceAdaptor,
@@ -88,14 +90,35 @@ contract CCMPSendMessageFacet is ICCMPGatewaySender, Constants {
         return true;
     }
 
-    /// @notice Handles fee payment
-    function _handleFee(CCMPMessage memory _message) internal {
-        uint256 feeAmount = _message.gasFeePaymentArgs.feeAmount;
-        address relayer = _message.gasFeePaymentArgs.relayer;
-        address tokenAddress = _message.gasFeePaymentArgs.feeTokenAddress;
+    function getGasFeePaymentDetails(
+        bytes32 _messageHash,
+        address[] calldata _tokens
+    ) external view returns (uint256[] memory balances) {
+        LibDiamond.CCMPDiamondStorage storage ds = LibDiamond._diamondStorage();
+        balances = new uint256[](_tokens.length);
+        unchecked {
+            for (uint256 i = 0; i < _tokens.length; ++i) {
+                balances[i] = ds.gasFeePaidByToken[_messageHash][_tokens[i]];
+            }
+        }
+    }
 
-        if (feeAmount >= 0) {
-            if (_message.gasFeePaymentArgs.feeTokenAddress == NATIVE_ADDRESS) {
+    /// @notice Handles fee payment
+    function addGasFee(
+        GasFeePaymentArgs memory _args,
+        bytes32 _messageHash,
+        address _sender
+    ) public payable {
+        uint256 feeAmount = _args.feeAmount;
+        address relayer = _args.relayer;
+        address tokenAddress = _args.feeTokenAddress;
+
+        LibDiamond.CCMPDiamondStorage storage ds = LibDiamond._diamondStorage();
+
+        if (feeAmount > 0) {
+            ds.gasFeePaidByToken[_messageHash][tokenAddress] += feeAmount;
+
+            if (tokenAddress == NATIVE_ADDRESS) {
                 if (msg.value != feeAmount) {
                     revert NativeAmountMismatch();
                 }
@@ -106,15 +129,17 @@ contract CCMPSendMessageFacet is ICCMPGatewaySender, Constants {
                     revert NativeTransferFailed(relayer, returndata);
                 }
             } else {
-                IERC20(_message.gasFeePaymentArgs.feeTokenAddress)
-                    .safeTransferFrom(
-                        _message.sender,
-                        relayer,
-                        _message.gasFeePaymentArgs.feeAmount
-                    );
+                if (msg.value != 0) {
+                    revert NativeAmountMismatch();
+                }
+                IERC20(tokenAddress).safeTransferFrom(
+                    _sender,
+                    relayer,
+                    feeAmount
+                );
             }
-        }
 
-        emit FeePaid(tokenAddress, feeAmount, relayer);
+            emit FeePaid(tokenAddress, feeAmount, relayer);
+        }
     }
 }

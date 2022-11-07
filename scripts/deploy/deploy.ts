@@ -14,7 +14,7 @@ import {
   DiamondCutFacet__factory,
   DiamondLoupeFacet__factory,
   CCMPReceiverMessageFacet__factory,
-  AbacusAdapter__factory,
+  HyperlaneAdaptor__factory,
   Diamond__factory,
   CCMPConfigurationFacet,
   CCMPSendMessageFacet,
@@ -24,7 +24,7 @@ import {
   CCMPReceiverMessageFacet,
   Diamond,
   ICCMPGateway__factory,
-  AbacusAdapter,
+  HyperlaneAdaptor,
 } from "../../typechain-types";
 import { Contract } from "ethers";
 import { FacetCutAction, getSelectors } from "./utils";
@@ -70,7 +70,7 @@ export type CCMPContracts = {
   CCMPExecutor: CCMPExecutor;
   AxelarAdaptor?: AxelarAdaptor;
   WormholeAdaptor?: WormholeAdaptor;
-  AbacusAdaptor?: AbacusAdapter;
+  HyperlaneAdaptor?: HyperlaneAdaptor;
 } & GatewayContracts;
 
 export type CCMPContractsConstructorArgs = {
@@ -223,24 +223,22 @@ export const deploy = async (
     await waitSec(5);
   }
 
-  let AbacusAdaptor;
+  let HyperlaneAdaptor;
   if (abacusConnectionManager && abacusInterchainGasMaster) {
     debug && console.log(`Deploying AbacusAdapter...`);
-    AbacusAdaptor = await new AbacusAdapter__factory(deployer).deploy(
-      "0x5dB92fdAC16d027A3Fef6f438540B5818b6f66D5",
-      //diamonds.Diamond.address,
+    HyperlaneAdaptor = await new HyperlaneAdaptor__factory(deployer).deploy(
+      diamonds.Diamond.address,
       pauser,
       abacusConnectionManager,
       abacusInterchainGasMaster
     );
     updatedConstructorArgs.AbacusAdaptor = [
-      "0x5dB92fdAC16d027A3Fef6f438540B5818b6f66D5",
-      // diamonds.Diamond.address,
+      diamonds.Diamond.address,
       pauser,
       abacusConnectionManager,
       abacusInterchainGasMaster,
     ];
-    debug && console.log(`AbacusAdapter: ${AbacusAdaptor.address}`);
+    debug && console.log(`AbacusAdapter: ${HyperlaneAdaptor.address}`);
     await waitSec(5);
   }
 
@@ -248,7 +246,7 @@ export const deploy = async (
     CCMPExecutor,
     AxelarAdaptor,
     WormholeAdaptor,
-    AbacusAdaptor,
+    HyperlaneAdaptor: HyperlaneAdaptor,
     ...diamonds,
   };
 
@@ -262,8 +260,8 @@ export const deploy = async (
   if (WormholeAdaptor) {
     await transferOwnership(WormholeAdaptor, owner, debug);
   }
-  if (AbacusAdaptor) {
-    await transferOwnership(AbacusAdaptor, owner, debug);
+  if (HyperlaneAdaptor) {
+    await transferOwnership(HyperlaneAdaptor, owner, debug);
   }
 
   return { contracts, constructorArgs: updatedConstructorArgs };
@@ -301,8 +299,8 @@ const configure = async (contracts: CCMPContracts, debug: boolean = false) => {
     await (await CCMPGateway.setRouterAdaptor(WormholeAdaptorKey, contracts.WormholeAdaptor.address)).wait();
     await waitSec(5);
   }
-  if (contracts.AbacusAdaptor) {
-    await (await CCMPGateway.setRouterAdaptor(AbacusAdaptorKey, contracts.AbacusAdaptor.address)).wait();
+  if (contracts.HyperlaneAdaptor) {
+    await (await CCMPGateway.setRouterAdaptor(AbacusAdaptorKey, contracts.HyperlaneAdaptor.address)).wait();
     await waitSec(5);
   }
   await CCMPGateway.setCCMPExecutor(contracts.CCMPExecutor.address);

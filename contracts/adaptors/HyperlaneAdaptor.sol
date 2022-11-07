@@ -9,14 +9,14 @@ import "../structures/CrossChainMessage.sol";
 
 import "./base/CCMPAdaptorBase.sol";
 
-error AbacusAdapterDestinationChainUnsupported(uint256 chainId);
+error HyperlaneAdapterDestinationChainUnsupported(uint256 chainId);
 error InvalidOriginChain(uint256 chainId);
 error InvalidSender(address sender, uint256 chainId);
 
-/// @title Abacus Adaptor
+/// @title Hyperlane Adaptor
 /// @author ankur@biconomy.io
 /// @notice Adaptor for the abacus protocol into the CCMP System
-contract AbacusAdapter is
+contract HyperlaneAdaptor is
     AbacusConnectionClient,
     CCMPAdaptorBase,
     IMessageRecipient
@@ -24,27 +24,27 @@ contract AbacusAdapter is
     using CCMPMessageUtils for CCMPMessage;
 
     event DomainIdUpdated(uint256 indexed chainId, uint32 indexed newDomainId);
-    event AbacusMessageRouted(uint256 indexed messageId);
-    event AbacusMessageVerified(
+    event HyperlaneMessageRouted(uint256 indexed messageId);
+    event HyperlaneMessageVerified(
         bytes32 indexed ccmpMessageHash,
         uint32 indexed origin,
         uint256 indexed sourceChainId,
         address sender
     );
-    event AbacusAdaptorUpdated(
+    event HyperlaneAdaptorUpdated(
         uint256 indexed chainId,
         address indexed newAbacusAdaptor
     );
 
-    // Abacus Domain ID to Chain ID
+    // Hyperlane Domain ID to Chain ID
     mapping(uint256 => uint32) public chainIdToDomainId;
     mapping(uint32 => uint256) public domainIdToChainId;
 
     // Whether a message has been verified or not
     mapping(bytes32 => bool) public messageHashVerified;
 
-    // Abacus Adaptor Mapping from other chains
-    mapping(uint256 => address) public chainIdToAbacusAdaptor;
+    // Hyperlane Adaptor Mapping from other chains
+    mapping(uint256 => address) public chainIdToHyperlaneAdaptor;
 
     constructor(
         address _ccmpGateway,
@@ -58,6 +58,18 @@ contract AbacusAdapter is
             _interchainGasPaymaster
         )
     {
+        if(_ccmpGateway == address(0)) {
+            revert InvalidAddress("ccmpGateway", _ccmpGateway);
+        }
+        if(_pauser == address(0)) {
+            revert InvalidAddress("pauser", _pauser);
+        }
+        if(_abacusConnectionManager == address(0)) {
+            revert InvalidAddress("abacusConnectionManager", _abacusConnectionManager);
+        }
+        if(_interchainGasPaymaster == address(0)) {
+            revert InvalidAddress("interchainGasPaymaster", _interchainGasPaymaster);
+        }
         // Initialize default domain IDs: https://docs.useabacus.network/abacus-docs/developers/domains
         // Testnet
         _updateDomainId(44787, 1000);
@@ -96,14 +108,14 @@ contract AbacusAdapter is
 
         // Ensure that the message is sent by the Abacus Adaptor on the source chain
         address sender = TypeCasts.bytes32ToAddress(_sender);
-        if (sender != chainIdToAbacusAdaptor[originChainId]) {
+        if (sender != chainIdToHyperlaneAdaptor[originChainId]) {
             revert InvalidSender(sender, originChainId);
         }
 
         bytes32 ccmpMessageHash = abi.decode(_message, (bytes32));
         messageHashVerified[ccmpMessageHash] = true;
 
-        emit AbacusMessageVerified(
+        emit HyperlaneMessageVerified(
             ccmpMessageHash,
             _origin,
             originChainId,
@@ -122,7 +134,7 @@ contract AbacusAdapter is
         uint32 destinationChainDomainId = chainIdToDomainId[
             _message.destinationChainId
         ];
-        address destinationRouterAddress = chainIdToAbacusAdaptor[
+        address destinationRouterAddress = chainIdToHyperlaneAdaptor[
             _message.destinationChainId
         ];
 
@@ -130,13 +142,13 @@ contract AbacusAdapter is
             destinationChainDomainId == 0 ||
             destinationRouterAddress == address(0)
         ) {
-            revert AbacusAdapterDestinationChainUnsupported(
+            revert HyperlaneAdapterDestinationChainUnsupported(
                 _message.destinationChainId
             );
         }
 
         bytes32 destinationRouterAddressEncoded = TypeCasts.addressToBytes32(
-            chainIdToAbacusAdaptor[_message.destinationChainId]
+            chainIdToHyperlaneAdaptor[_message.destinationChainId]
         );
 
         uint256 messageId = _outbox().dispatch(
@@ -145,7 +157,7 @@ contract AbacusAdapter is
             abi.encode(_message.hash())
         );
 
-        emit AbacusMessageRouted(messageId);
+        emit HyperlaneMessageRouted(messageId);
     }
 
     /// @notice Called by the CCMP Gateway to verify a message routed via Abacus
@@ -155,6 +167,7 @@ contract AbacusAdapter is
     function verifyPayload(CCMPMessage calldata _ccmpMessage, bytes calldata)
         external
         view
+        virtual
         whenNotPaused
         returns (bool, string memory)
     {
@@ -181,7 +194,7 @@ contract AbacusAdapter is
         external
         onlyOwner
     {
-        chainIdToAbacusAdaptor[_chainId] = _abacusAdaptor;
-        emit AbacusAdaptorUpdated(_chainId, _abacusAdaptor);
+        chainIdToHyperlaneAdaptor[_chainId] = _abacusAdaptor;
+        emit HyperlaneAdaptorUpdated(_chainId, _abacusAdaptor);
     }
 }

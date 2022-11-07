@@ -1,5 +1,8 @@
 {
-  "name": "hardhat-project",
+  "name": "@biconomy/ccmp-contracts",
+  "version": "0.0.2",
+  "license": "MIT",
+  "description": "Biconomy's Cross Chain Messaging Protocol Aggregrator Contracts",
   "devDependencies": {
     "@ethersproject/abi": "^5.7.0",
     "@ethersproject/providers": "^5.7.0",
@@ -28,6 +31,7 @@
     "@defi-wonderland/smock": "^2.2.0",
     "@improbable-eng/grpc-web-node-http-transport": "^0.15.0",
     "@openzeppelin/contracts-upgradeable": "^4.7.3",
+    "axios": "^1.1.3",
     "dotenv": "^16.0.1",
     "hardhat-contract-sizer": "^2.6.1",
     "hardhat-gas-reporter": "^1.0.8",
@@ -39,6 +43,7 @@
     "deploy:testnet": "hardhat run scripts/deploy/testnet.ts",
     "verify": "hardhat verify",
     "test": "hardhat test",
-    "upgrade-contract": "hardhat run scripts/upgrade/upgrade.ts"
+    "upgrade-contract": "hardhat run scripts/upgrade/upgrade.ts",
+    "publisher": "yarn publish --access public --scope biconomy"
   }
 }

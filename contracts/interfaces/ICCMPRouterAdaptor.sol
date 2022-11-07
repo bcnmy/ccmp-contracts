@@ -4,6 +4,10 @@ pragma solidity 0.8.16;
 import "../structures/CrossChainMessage.sol";
 
 interface ICCMPRouterAdaptor {
+    error CallerIsNotCCMPGateway();
+
+    error InvalidAddress(string parameterName, address value);
+
     function verifyPayload(
         CCMPMessage calldata _ccmpMessage,
         bytes calldata _verificationData
