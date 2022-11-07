@@ -41,6 +41,16 @@ contract WormholeAdaptor is CCMPAdaptorBase {
         address _pauser,
         DeploymentConfiguartion _deploymentConfiguration
     ) CCMPAdaptorBase(_ccmpGateway, _pauser) {
+        if(_wormhole == address(0)) {
+            revert InvalidAddress("wormhole", _wormhole);
+        }
+        if(_ccmpGateway == address(0)) {
+            revert InvalidAddress("ccmpGateway", _ccmpGateway);
+        }
+        if(_pauser == address(0)) {
+            revert InvalidAddress("pauser", _pauser);
+        }
+
         wormhole = IWormhole(_wormhole);
 
         // https://docs.wormhole.com/wormhole/contracts

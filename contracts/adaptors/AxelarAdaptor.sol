@@ -47,6 +47,16 @@ contract AxelarAdaptor is CCMPAdaptorBase {
         address _ccmpGateway,
         address _pauser
     ) CCMPAdaptorBase(_ccmpGateway, _pauser) {
+        if(_axelarGateway == address(0)) {
+            revert InvalidAddress("axelarGateway", _axelarGateway);
+        }
+        if(_ccmpGateway == address(0)) {
+            revert InvalidAddress("ccmpGateway", _ccmpGateway);
+        }
+        if(_pauser == address(0)) {
+            revert InvalidAddress("pauser", _pauser);
+        }
+
         axelarGateway = IAxelarGateway(_axelarGateway);
 
         // Setup Mainnet Chain ID to Names

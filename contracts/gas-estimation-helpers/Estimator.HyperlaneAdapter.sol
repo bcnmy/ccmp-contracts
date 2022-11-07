@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import "../adaptors/AbacusAdapter.sol";
+import "../adaptors/HyperlaneAdaptor.sol";
 
-contract EstimationHyperlaneAdapter is AbacusAdapter {
+contract EstimationHyperlaneAdapter is HyperlaneAdaptor {
     using CCMPMessageUtils for CCMPMessage;
 
     constructor(
@@ -12,7 +12,7 @@ contract EstimationHyperlaneAdapter is AbacusAdapter {
         address _abacusConnectionManager,
         address _interchainGasPaymaster
     )
-        AbacusAdapter(
+        HyperlaneAdaptor(
             _ccmpGateway,
             _pauser,
             _abacusConnectionManager,

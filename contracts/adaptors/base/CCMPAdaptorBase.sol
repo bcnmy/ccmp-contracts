@@ -10,8 +10,6 @@ import "../../security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-error CallerIsNotCCMPGateway();
-
 /// @title CCMPAdaptorBase
 /// @author ankur@biconomy.io
 /// @notice Base contract for all CCMP Adaptors

@@ -55,7 +55,7 @@ abstract contract PausableBase is Pausable {
      * @dev Allows the current pauser to transfer control of the contract to a newPauser.
      * @param newPauser The address to transfer pauserShip to.
      */
-    function changePauser(address newPauser) public onlyPauser whenNotPaused {
+    function changePauser(address newPauser) external onlyPauser whenNotPaused {
         _changePauser(newPauser);
     }
 
@@ -74,11 +74,11 @@ abstract contract PausableBase is Pausable {
         _pauser = address(0);
     }
 
-    function pause() public onlyPauser {
+    function pause() external onlyPauser {
         _pause();
     }
 
-    function unpause() public onlyPauser {
+    function unpause() external onlyPauser {
         _unpause();
     }
 }
