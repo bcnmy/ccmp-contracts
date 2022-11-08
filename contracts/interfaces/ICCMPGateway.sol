@@ -61,7 +61,7 @@ interface ICCMPGatewaySender is ICCMPGatewayBase {
         GasFeePaymentArgs memory _args,
         bytes32 _messageHash,
         address _sender
-    ) external;
+    ) external payable;
 }
 
 interface ICCMPGatewayReceiver is ICCMPGatewayBase {
