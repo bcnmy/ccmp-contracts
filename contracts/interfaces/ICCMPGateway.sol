@@ -50,6 +50,18 @@ interface ICCMPGatewaySender is ICCMPGatewayBase {
         GasFeePaymentArgs calldata _gasFeePaymentArgs,
         bytes calldata _routerArgs
     ) external payable returns (bool sent);
+
+    function getGasFeePaymentDetails(
+        bytes32 _messageHash,
+        address[] calldata _tokens
+    ) external view returns (uint256[] memory balances);
+
+    /// @notice Handles fee payment
+    function addGasFee(
+        GasFeePaymentArgs memory _args,
+        bytes32 _messageHash,
+        address _sender
+    ) external;
 }
 
 interface ICCMPGatewayReceiver is ICCMPGatewayBase {
