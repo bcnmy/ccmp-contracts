@@ -73,6 +73,12 @@ contract CCMPReceiverMessageFacet is ICCMPGatewayReceiver, Constants {
 
         _executeCCMPMessage(_message, _allowPartialExecution);
 
+        _emitCCMPMessageExecuted(_message);
+
+        return true;
+    }
+
+    function _emitCCMPMessageExecuted(CCMPMessage calldata _message) private {
         emit CCMPMessageExecuted(
             _message.hash(),
             _message.sender,
@@ -86,8 +92,6 @@ contract CCMPReceiverMessageFacet is ICCMPGatewayReceiver, Constants {
             _message.gasFeePaymentArgs,
             _message.payload
         );
-
-        return true;
     }
 
     /// @notice Handles Execution of the received message from CCMP Gateway on destination chain.
