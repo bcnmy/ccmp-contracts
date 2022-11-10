@@ -279,11 +279,11 @@ const hyphenDepositAndCallWithBatchHelper = async () => {
     console.log(`Source chain hash: ${hash}, blockNumber: ${receipt.blockNumber}`);
 
     // Parse Event And Get VAA
-    // const ccmpMessage = await getCCMPMessagePayloadFromSourceTx(hash);
-    // const vaa = await getVaa(hash);
+    const ccmpMessage = await getCCMPMessagePayloadFromSourceTx(hash);
+    const vaa = await getVaa(hash);
 
     // Perform Exit Transaction
-    // await executeApprovedTransaction(hash, ccmpMessage, vaa);
+    await executeApprovedTransaction(hash, ccmpMessage, vaa);
   } catch (e) {
     console.error(`Error executing transaction`);
     console.log(e);

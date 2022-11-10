@@ -58,17 +58,23 @@ contract HyperlaneAdaptor is
             _interchainGasPaymaster
         )
     {
-        if(_ccmpGateway == address(0)) {
+        if (_ccmpGateway == address(0)) {
             revert InvalidAddress("ccmpGateway", _ccmpGateway);
         }
-        if(_pauser == address(0)) {
+        if (_pauser == address(0)) {
             revert InvalidAddress("pauser", _pauser);
         }
-        if(_abacusConnectionManager == address(0)) {
-            revert InvalidAddress("abacusConnectionManager", _abacusConnectionManager);
+        if (_abacusConnectionManager == address(0)) {
+            revert InvalidAddress(
+                "abacusConnectionManager",
+                _abacusConnectionManager
+            );
         }
-        if(_interchainGasPaymaster == address(0)) {
-            revert InvalidAddress("interchainGasPaymaster", _interchainGasPaymaster);
+        if (_interchainGasPaymaster == address(0)) {
+            revert InvalidAddress(
+                "interchainGasPaymaster",
+                _interchainGasPaymaster
+            );
         }
         // Initialize default domain IDs: https://docs.useabacus.network/abacus-docs/developers/domains
         // Testnet
@@ -190,11 +196,11 @@ contract HyperlaneAdaptor is
         _updateDomainId(_chainId, _domainId);
     }
 
-    function setAbacusAdaptor(uint256 _chainId, address _abacusAdaptor)
+    function setHyperlaneAdaptor(uint256 _chainId, address _hyperlaneAdaptor)
         external
         onlyOwner
     {
-        chainIdToHyperlaneAdaptor[_chainId] = _abacusAdaptor;
-        emit HyperlaneAdaptorUpdated(_chainId, _abacusAdaptor);
+        chainIdToHyperlaneAdaptor[_chainId] = _hyperlaneAdaptor;
+        emit HyperlaneAdaptorUpdated(_chainId, _hyperlaneAdaptor);
     }
 }

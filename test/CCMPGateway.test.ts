@@ -9,7 +9,7 @@ import {
   GasFeePaymentArgsStruct,
 } from '../typechain-types/contracts/interfaces/ICCMPRouterAdaptor';
 import { Structs } from '../typechain-types/contracts/interfaces/IWormhole';
-import { parseUnits } from 'ethers/lib/utils';
+import { formatBytes32String, parseUnits } from 'ethers/lib/utils';
 import { use } from 'chai';
 import {
   ICCMPGateway,
@@ -30,8 +30,12 @@ import {
   CCMPHelper__factory,
   ERC20Token__factory,
   MockWormhole__factory,
+  IAbacusConnectionManager,
+  HyperlaneAdaptor,
+  HyperlaneAdaptor__factory,
 } from '../typechain-types';
 import { deployGateway } from '../scripts/deploy/deploy';
+import { IAbacusConnectionManager__factory } from '@abacus-network/app';
 
 const NATIVE = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
@@ -48,8 +52,10 @@ describe('CCMPGateway', async function () {
     CCMPExecutor: CCMPExecutor,
     AxelarAdaptor: AxelarAdaptor,
     WormholeAdaptor: WormholeAdaptor,
+    HyperlaneAdaptor: HyperlaneAdaptor,
     MockAxelarGateway: FakeContract<IAxelarGateway>,
     MockWormholeGateway: MockWormhole,
+    MockAbacusConnectionManager: FakeContract<IAbacusConnectionManager>,
     CCMPHelper: CCMPHelper,
     Token: ERC20Token,
     SampleContract: SampleContract,
@@ -68,6 +74,8 @@ describe('CCMPGateway', async function () {
 
     MockWormholeGateway = await new MockWormhole__factory(owner).deploy();
 
+    MockAbacusConnectionManager = await smock.fake(IAbacusConnectionManager__factory.abi);
+
     const { contracts: Diamond } = await deployGateway(pauser.address);
     CCMPGateway = ICCMPGateway__factory.connect(Diamond.Diamond.address, owner);
 
@@ -85,6 +93,13 @@ describe('CCMPGateway', async function () {
       CCMPGateway.address,
       pauser.address,
       1
+    );
+
+    HyperlaneAdaptor = await new HyperlaneAdaptor__factory(owner).deploy(
+      CCMPGateway.address,
+      pauser.address,
+      MockAbacusConnectionManager.address,
+      MockAbacusConnectionManager.address
     );
 
     SampleContract = await new SampleContract__factory(owner).deploy(CCMPExecutor.address);
@@ -522,6 +537,102 @@ describe('CCMPGateway', async function () {
 
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
       await CCMPGateway.setRouterAdaptor('wormhole', WormholeAdaptor.address);
+
+      const tx = CCMPGateway.receiveMessage(message, emptyBytes, false);
+
+      await expect(tx).to.emit(SampleContract, 'SampleEvent').withArgs('Hello World');
+      await expect(tx).to.emit(SampleContract, 'SampleEvent').withArgs('Hello World 2.0');
+    });
+  });
+
+  describe('Receiving Messages - Hyperlane', async function () {
+    let payloads: CCMPMessagePayloadStruct[];
+    let message: CCMPMessageStruct;
+    let gasFeePaymentArgs: GasFeePaymentArgsStruct;
+    const emptyBytes = abiCoder.encode(['bytes'], [ethers.constants.HashZero]);
+    let chainId: number;
+
+    beforeEach(async function () {
+      chainId = (await ethers.provider.getNetwork()).chainId;
+
+      payloads = [
+        {
+          to: SampleContract.address,
+          _calldata: getSampleCalldata('Hello World'),
+        },
+        {
+          to: SampleContract.address,
+          _calldata: getSampleCalldata('Hello World 2.0'),
+        },
+      ];
+
+      gasFeePaymentArgs = {
+        feeTokenAddress: NATIVE,
+        feeAmount: 0,
+        relayer: alice.address,
+      };
+
+      message = {
+        sender: owner.address,
+        sourceGateway: CCMPGateway.address,
+        sourceAdaptor: AxelarAdaptor.address,
+        sourceChainId: chainId + 1,
+        destinationGateway: CCMPGateway.address,
+        destinationChainId: chainId,
+        routerAdaptor: 'hyperlane',
+        nonce: BigNumber.from(chainId + 1).mul(BigNumber.from(2).mul(128)),
+        gasFeePaymentArgs: gasFeePaymentArgs,
+        payload: payloads,
+      };
+    });
+
+    it('Should revert if source is not registered', async function () {
+      await expect(CCMPGateway.receiveMessage(message, emptyBytes, false))
+        .to.be.revertedWithCustomError(CCMPGateway, 'InvalidSource')
+        .withArgs(chainId + 1, CCMPGateway.address);
+    });
+
+    it('Should revert if destination chain is incorrect', async function () {
+      await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
+
+      message.destinationChainId = 12321;
+      await expect(CCMPGateway.receiveMessage(message, emptyBytes, false))
+        .to.be.revertedWithCustomError(CCMPGateway, 'WrongDestination')
+        .withArgs(12321, CCMPGateway.address);
+    });
+
+    it('Should revert if destination gateway is incorrect', async function () {
+      await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
+
+      message.destinationGateway = bob.address;
+      await expect(CCMPGateway.receiveMessage(message, emptyBytes, false))
+        .to.be.revertedWithCustomError(CCMPGateway, 'WrongDestination')
+        .withArgs(chainId, bob.address);
+    });
+
+    it('Should revert if message validation fails', async function () {
+      await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
+      await CCMPGateway.setRouterAdaptor('hyperlane', HyperlaneAdaptor.address);
+
+      await expect(
+        CCMPGateway.receiveMessage(message, emptyBytes, false)
+      ).to.be.revertedWithCustomError(CCMPGateway, 'VerificationFailed');
+    });
+
+    it('Should execute message if all checks are satisfied', async function () {
+      const messageHash = await CCMPHelper.hash(message);
+
+      MockAbacusConnectionManager.isInbox.returns(true);
+
+      await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
+      await CCMPGateway.setRouterAdaptor('hyperlane', HyperlaneAdaptor.address);
+      await HyperlaneAdaptor.updateDomainId(chainId + 1, chainId + 1);
+      await HyperlaneAdaptor.setHyperlaneAdaptor(chainId + 1, HyperlaneAdaptor.address);
+      await HyperlaneAdaptor.handle(
+        chainId + 1,
+        ethers.utils.hexZeroPad(HyperlaneAdaptor.address, 32),
+        abiCoder.encode(['bytes32'], [messageHash])
+      );
 
       const tx = CCMPGateway.receiveMessage(message, emptyBytes, false);
 
