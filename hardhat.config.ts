@@ -13,9 +13,9 @@ dotenv.config();
 const disableViaIr = !!process.env.DISABLE_VIA_IR;
 
 if (!disableViaIr) {
-  console.log(`Enabling via-ir for compilation`);
+  console.log(`Via-ir enabled for compilation`);
 } else {
-  console.log(`Disabling via-ir for compilation`);
+  console.log(`Via-ir disabled for compilation`);
 }
 
 const config: HardhatUserConfig = {

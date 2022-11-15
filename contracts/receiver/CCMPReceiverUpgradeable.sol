@@ -10,10 +10,11 @@ abstract contract CCMPReceiverUpgradeable is CCMPReceiverBase, Initializable {
         _disableInitializers();
     }
 
-    function __CCMPReceiver_init(address __ccmpExecutor)
-        internal
-        onlyInitializing
-    {
+    function __CCMPReceiver_init(
+        address __ccmpExecutor,
+        ILiquidityPool _liquidityPool
+    ) internal onlyInitializing {
         _setCCMPExecutor(__ccmpExecutor);
+        _setLiquidityPool(_liquidityPool);
     }
 }
