@@ -1,15 +1,19 @@
-import { ethers } from "hardhat";
-import { ERC20Token__factory, ICCMPGateway__factory, SampleContract__factory } from "../../typechain-types";
-import { getCCMPMessagePayloadFromSourceTx } from "./utils";
-import { NodeHttpTransport } from "@improbable-eng/grpc-web-node-http-transport";
+import { ethers } from 'hardhat';
+import {
+  ERC20Token__factory,
+  ICCMPGateway__factory,
+  SampleContract__factory,
+} from '../../typechain-types';
+import { getCCMPMessagePayloadFromSourceTx } from './utils';
+import { NodeHttpTransport } from '@improbable-eng/grpc-web-node-http-transport';
 import {
   getSignedVAA,
   getEmitterAddressEth,
   parseSequenceFromLogEth,
   IWormhole__factory,
-} from "@certusone/wormhole-sdk";
-import type { CCMPMessageStruct } from "../../typechain-types/contracts/interfaces/ICCMPRouterAdaptor";
-import { BigNumber } from "ethers";
+} from '@certusone/wormhole-sdk';
+import type { CCMPMessageStruct } from '../../typechain-types/contracts/interfaces/ICCMPRouterAdaptor';
+import { BigNumber } from 'ethers';
 import {
   fromChain,
   fromContracts,
@@ -21,9 +25,9 @@ import {
   sourceHyphen,
   exitBatchHelper,
   sourceToken,
-} from "./config";
+} from './config';
 
-const wormholeRpcHost = "https://wormhole-v2-testnet-api.certus.one";
+const wormholeRpcHost = 'https://wormhole-v2-testnet-api.certus.one';
 
 const abiCoder = new ethers.utils.AbiCoder();
 
@@ -42,19 +46,29 @@ const getVaa = async (sourceTxHash: string): Promise<Uint8Array> => {
     const id = setInterval(async () => {
       try {
         console.log(wormholeRpcHost, fromContracts.emitterChain, emitter, sequence);
-        const { vaaBytes } = await getSignedVAA(wormholeRpcHost, fromContracts.emitterChain, emitter, sequence, {
-          transport: NodeHttpTransport(),
-        });
+        const { vaaBytes } = await getSignedVAA(
+          wormholeRpcHost,
+          fromContracts.emitterChain,
+          emitter,
+          sequence,
+          {
+            transport: NodeHttpTransport(),
+          }
+        );
         clearInterval(id);
         resolve(vaaBytes);
       } catch (e) {
-        console.log("VAA Not found", e);
+        console.log('VAA Not found', e);
       }
     }, 2000);
   });
 };
 
-const executeApprovedTransaction = async (txHash: string, message: CCMPMessageStruct, vaa: Uint8Array) => {
+const executeApprovedTransaction = async (
+  txHash: string,
+  message: CCMPMessageStruct,
+  vaa: Uint8Array
+) => {
   console.log(`Executing source transaction ${txHash} on exit chain...`);
   const gateway = exitGateway();
 
@@ -64,10 +78,10 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
     const wormhole = IWormhole__factory.connect(toContracts.wormholeBridgeAddress, gateway.signer);
 
     const vaaParsed = await wormhole.parseAndVerifyVM(vaa);
-    console.log("VAA: ", vaaParsed);
+    console.log('VAA: ', vaaParsed);
 
     const { hash, wait } = await gateway.receiveMessage(message, vaa, false, {
-      gasPrice: ethers.utils.parseUnits("50", "gwei"),
+      gasPrice: ethers.utils.parseUnits('50', 'gwei'),
       // gasLimit: 1000000
     });
     console.log(`Submitted exit transaction ${hash} on exit chain.`);
@@ -75,7 +89,10 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
     console.log(`Transaction ${hash} confirmed on exit chain at block ${blockNumber}`);
   } catch (e) {
     console.error(`Error executing transaction`);
-    const errorData = (e as any).error?.data || (e as any).error?.error?.data || (e as any).error?.error?.error?.data;
+    const errorData =
+      (e as any).error?.data ||
+      (e as any).error?.error?.data ||
+      (e as any).error?.error?.error?.data;
     if (errorData) {
       const error = gateway.interface.parseError(errorData);
       console.log(error);
@@ -107,13 +124,16 @@ const simpleMessage = async () => {
   const gateway = sourceGateway();
   const token = sourceToken();
 
-  const sampleContract = SampleContract__factory.connect(fromContracts.sampleContract, gateway.signer);
-  const calldata = sampleContract.interface.encodeFunctionData("emitEvent", ["Hello World"]);
+  const sampleContract = SampleContract__factory.connect(
+    fromContracts.sampleContract,
+    gateway.signer
+  );
+  const calldata = sampleContract.interface.encodeFunctionData('emitEvent', ['Hello World']);
 
   try {
     const { hash, wait } = await gateway.sendMessage(
       80001,
-      "wormhole",
+      'wormhole',
       [
         {
           to: toContracts.sampleContract,
@@ -129,11 +149,11 @@ const simpleMessage = async () => {
         },
       ],
       {
-        feeTokenAddress: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+        feeTokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
         feeAmount: 0,
-        relayer: "0x0000000000000000000000000000000000000001",
+        relayer: '0x0000000000000000000000000000000000000001',
       },
-      abiCoder.encode(["uint256"], [CONSISTENCY_LEVEL]),
+      abiCoder.encode(['uint256'], [CONSISTENCY_LEVEL]),
       {
         gasPrice: 50 * 1e9,
       }
@@ -182,14 +202,17 @@ const hyphenDepositAndCall = async () => {
       fromContracts.token,
       await hyphen.signer.getAddress(),
       BigNumber.from(100).mul(sourceDecimals),
-      "CCMPTest",
+      'CCMPTest',
       [],
       {
         feeTokenAddress: fromContracts.token,
         feeAmount: BigNumber.from(10).mul(sourceDecimals),
-        relayer: "0x0000000000000000000000000000000000000001",
+        relayer: '0x0000000000000000000000000000000000000001',
       },
-      abiCoder.encode(["string", "bytes"], ["wormhole", abiCoder.encode(["uint256"], [CONSISTENCY_LEVEL])]),
+      abiCoder.encode(
+        ['string', 'bytes'],
+        ['wormhole', abiCoder.encode(['uint256'], [CONSISTENCY_LEVEL])]
+      ),
       {
         // gasLimit: 1000000,
       }
@@ -208,7 +231,10 @@ const hyphenDepositAndCall = async () => {
   } catch (e) {
     console.error(`Error executing transaction`);
     console.log(e);
-    const errorData = (e as any).error?.data || (e as any).error?.error?.data || (e as any).error?.error?.error?.data;
+    const errorData =
+      (e as any).error?.data ||
+      (e as any).error?.error?.data ||
+      (e as any).error?.error?.error?.data;
     if (errorData) {
       console.log(errorData);
       const error = gateway.interface.parseError(errorData);
@@ -240,38 +266,39 @@ const hyphenDepositAndCallWithBatchHelper = async () => {
     const gasFeePaymentArgs = {
       feeTokenAddress: fromContracts.token,
       feeAmount: BigNumber.from(10).mul(sourceDecimals),
-      relayer: "0x0000000000000000000000000000000000000001",
+      relayer: '0x0000000000000000000000000000000000000001',
     };
 
+    const params = {
+      toChainId,
+      tokenAddress: fromContracts.token,
+      receiver: batchHelper.address,
+      amount: BigNumber.from(100).mul(sourceDecimals),
+      tag: 'CCMPTest',
+      payloads: [
+        {
+          to: toContracts.batchHelper,
+          _calldata: batchHelper.interface.encodeFunctionData('execute', [
+            toContracts.token,
+            toContracts.lpToken,
+            toContracts.liquidityProviders,
+            toContracts.liquidityFarming,
+            signerAddress,
+          ]),
+        },
+      ],
+      gasFeePaymentArgs,
+      adaptorName: 'wormhole',
+      routerArgs: abiCoder.encode(['uint256'], [CONSISTENCY_LEVEL]),
+      hyphenArgs: [],
+    };
+
+    console.log(JSON.stringify(params, null, 2));
+
     // Perform Source Chain Transaction
-    const { hash, wait } = await hyphen.depositAndCall(
-      {
-        toChainId,
-        tokenAddress: fromContracts.token,
-        receiver: batchHelper.address,
-        amount: BigNumber.from(100).mul(sourceDecimals),
-        tag: "CCMPTest",
-        payloads: [
-          {
-            to: toContracts.batchHelper,
-            _calldata: batchHelper.interface.encodeFunctionData("execute", [
-              toContracts.token,
-              toContracts.lpToken,
-              toContracts.liquidityProviders,
-              toContracts.liquidityFarming,
-              signerAddress,
-            ]),
-          },
-        ],
-        gasFeePaymentArgs,
-        adaptorName: "wormhole",
-        routerArgs: abiCoder.encode(["uint256"], [CONSISTENCY_LEVEL]),
-        hyphenArgs: [],
-      },
-      {
-        gasLimit: 1000000,
-      }
-    );
+    const { hash, wait } = await hyphen.depositAndCall(params, {
+      gasLimit: 1000000,
+    });
     const receipt = await wait(1);
 
     // const hash = "0xf84a3b3c2ba05d6f12010311f5f8cbb03bd1b86a5e30737b884e3c61e8b37804";
@@ -279,15 +306,18 @@ const hyphenDepositAndCallWithBatchHelper = async () => {
     console.log(`Source chain hash: ${hash}, blockNumber: ${receipt.blockNumber}`);
 
     // Parse Event And Get VAA
-    const ccmpMessage = await getCCMPMessagePayloadFromSourceTx(hash);
-    const vaa = await getVaa(hash);
+    // const ccmpMessage = await getCCMPMessagePayloadFromSourceTx(hash);
+    // const vaa = await getVaa(hash);
 
     // Perform Exit Transaction
-    await executeApprovedTransaction(hash, ccmpMessage, vaa);
+    // await executeApprovedTransaction(hash, ccmpMessage, vaa);
   } catch (e) {
     console.error(`Error executing transaction`);
     console.log(e);
-    const errorData = (e as any).error?.data || (e as any).error?.error?.data || (e as any).error?.error?.error?.data;
+    const errorData =
+      (e as any).error?.data ||
+      (e as any).error?.error?.data ||
+      (e as any).error?.error?.error?.data;
     if (errorData) {
       console.log(errorData);
       const error = gateway.interface.parseError(errorData);
