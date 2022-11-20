@@ -1,6 +1,6 @@
 {
   "name": "@biconomy/ccmp-contracts",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "license": "MIT",
   "description": "Biconomy's Cross Chain Messaging Protocol Aggregrator Contracts",
   "devDependencies": {
