@@ -45,15 +45,16 @@ contract AxelarAdaptor is CCMPAdaptorBase {
     constructor(
         address _axelarGateway,
         address _ccmpGateway,
+        address _owner,
         address _pauser
-    ) CCMPAdaptorBase(_ccmpGateway, _pauser) {
-        if(_axelarGateway == address(0)) {
+    ) CCMPAdaptorBase(_ccmpGateway, _owner, _pauser) {
+        if (_axelarGateway == address(0)) {
             revert InvalidAddress("axelarGateway", _axelarGateway);
         }
-        if(_ccmpGateway == address(0)) {
+        if (_ccmpGateway == address(0)) {
             revert InvalidAddress("ccmpGateway", _ccmpGateway);
         }
-        if(_pauser == address(0)) {
+        if (_pauser == address(0)) {
             revert InvalidAddress("pauser", _pauser);
         }
 
@@ -80,12 +81,10 @@ contract AxelarAdaptor is CCMPAdaptorBase {
 
     /// @notice Called by the CCMP Gateway to route a message via Axelar
     /// @param _message The message to be routed
-    function routePayload(CCMPMessage calldata _message, bytes calldata)
-        external
-        nonReentrant
-        whenNotPaused
-        onlyCCMPGateway
-    {
+    function routePayload(
+        CCMPMessage calldata _message,
+        bytes calldata
+    ) external nonReentrant whenNotPaused onlyCCMPGateway {
         string memory destinationChainName = chainIdToName[
             _message.destinationChainId
         ];
@@ -116,13 +115,10 @@ contract AxelarAdaptor is CCMPAdaptorBase {
     /// @param _ccmpMessage The message to be verified
     /// @return status Whether the message is verified or not
     /// @return message Message/Error string
-    function verifyPayload(CCMPMessage calldata _ccmpMessage, bytes calldata)
-        external
-        view
-        virtual
-        whenNotPaused
-        returns (bool, string memory)
-    {
+    function verifyPayload(
+        CCMPMessage calldata _ccmpMessage,
+        bytes calldata
+    ) external view virtual whenNotPaused returns (bool, string memory) {
         return
             messageHashVerified[_ccmpMessage.hash()]
                 ? (true, "")
@@ -179,10 +175,10 @@ contract AxelarAdaptor is CCMPAdaptorBase {
         );
     }
 
-    function setChainIdToName(uint256 _chainId, string calldata _chainName)
-        external
-        onlyOwner
-    {
+    function setChainIdToName(
+        uint256 _chainId,
+        string calldata _chainName
+    ) external onlyOwner {
         chainIdToName[_chainId] = _chainName;
         emit ChainNameUpdated(_chainId, _chainName);
     }
@@ -200,10 +196,9 @@ contract AxelarAdaptor is CCMPAdaptorBase {
         );
     }
 
-    function updateAxelarGateway(IAxelarGateway _axelarGateway)
-        external
-        onlyOwner
-    {
+    function updateAxelarGateway(
+        IAxelarGateway _axelarGateway
+    ) external onlyOwner {
         axelarGateway = _axelarGateway;
         emit AxelarGatewayUpdated(address(_axelarGateway));
     }

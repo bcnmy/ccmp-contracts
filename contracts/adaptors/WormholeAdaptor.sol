@@ -9,7 +9,7 @@ import "./base/CCMPAdaptorBase.sol";
 /// @notice Adaptor for the Wormole protocol into the CCMP System
 contract WormholeAdaptor is CCMPAdaptorBase {
     using CCMPMessageUtils for CCMPMessage;
-    enum DeploymentConfiguartion {
+    enum DeploymentConfiguration {
         Mainnet,
         Testnet
     }
@@ -38,23 +38,24 @@ contract WormholeAdaptor is CCMPAdaptorBase {
     constructor(
         address _wormhole,
         address _ccmpGateway,
+        address _owner,
         address _pauser,
-        DeploymentConfiguartion _deploymentConfiguration
-    ) CCMPAdaptorBase(_ccmpGateway, _pauser) {
-        if(_wormhole == address(0)) {
+        DeploymentConfiguration _deploymentConfiguration
+    ) CCMPAdaptorBase(_ccmpGateway, _owner, _pauser) {
+        if (_wormhole == address(0)) {
             revert InvalidAddress("wormhole", _wormhole);
         }
-        if(_ccmpGateway == address(0)) {
+        if (_ccmpGateway == address(0)) {
             revert InvalidAddress("ccmpGateway", _ccmpGateway);
         }
-        if(_pauser == address(0)) {
+        if (_pauser == address(0)) {
             revert InvalidAddress("pauser", _pauser);
         }
 
         wormhole = IWormhole(_wormhole);
 
         // https://docs.wormhole.com/wormhole/contracts
-        if (_deploymentConfiguration == DeploymentConfiguartion.Mainnet) {
+        if (_deploymentConfiguration == DeploymentConfiguration.Mainnet) {
             // Set Mainnet Chain IDs
             _updateWormholeChainId(2, 1);
             _updateWormholeChainId(4, 56);
@@ -68,7 +69,7 @@ contract WormholeAdaptor is CCMPAdaptorBase {
             _updateWormholeChainId(13, 8217);
             _updateWormholeChainId(14, 42220);
         } else if (
-            _deploymentConfiguration == DeploymentConfiguartion.Testnet
+            _deploymentConfiguration == DeploymentConfiguration.Testnet
         ) {
             // Set Testnet Chain IDs
             _updateWormholeChainId(2, 5);
@@ -86,10 +87,10 @@ contract WormholeAdaptor is CCMPAdaptorBase {
         }
     }
 
-    function setWormholeAdaptorAddress(uint256 _chainId, address _adaptor)
-        external
-        onlyOwner
-    {
+    function setWormholeAdaptorAddress(
+        uint256 _chainId,
+        address _adaptor
+    ) external onlyOwner {
         chainIdToWormholeAdaptor[_chainId] = _adaptor;
         emit WormholeAdaptorUpdated(_chainId, _adaptor);
     }
@@ -99,17 +100,18 @@ contract WormholeAdaptor is CCMPAdaptorBase {
         emit WormholeUpdated(address(wormhole));
     }
 
-    function _updateWormholeChainId(uint16 _wormholeChainId, uint256 _chainId)
-        internal
-    {
+    function _updateWormholeChainId(
+        uint16 _wormholeChainId,
+        uint256 _chainId
+    ) internal {
         womrholeChainIdToChainId[_wormholeChainId] = _chainId;
         emit WormholeChainIdUpdated(_wormholeChainId, _chainId);
     }
 
-    function updateWormholeChainId(uint16 _wormholeChainId, uint256 _chainId)
-        external
-        onlyOwner
-    {
+    function updateWormholeChainId(
+        uint16 _wormholeChainId,
+        uint256 _chainId
+    ) external onlyOwner {
         _updateWormholeChainId(_wormholeChainId, _chainId);
     }
 
@@ -174,7 +176,9 @@ contract WormholeAdaptor is CCMPAdaptorBase {
         return (true, "");
     }
 
-    function _bytes32ToAddress(bytes32 _data) internal pure returns (address s) {
+    function _bytes32ToAddress(
+        bytes32 _data
+    ) internal pure returns (address s) {
         s = address(uint160(uint256(_data)));
     }
 }

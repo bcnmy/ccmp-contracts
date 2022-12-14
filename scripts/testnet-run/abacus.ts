@@ -99,36 +99,38 @@ const simpleMessage = async () => {
   const calldata = sampleContract.interface.encodeFunctionData('emitEvent', ['Hello World']);
 
   try {
-    const { hash, wait } = await gateway.sendMessage(
-      toChainId,
-      'abacus',
-      [
-        {
-          to: SampleContractToAddr,
-          _calldata: calldata,
-        },
-        {
-          to: SampleContractToAddr,
-          _calldata: calldata,
-        },
-        {
-          to: SampleContractToAddr,
-          _calldata: calldata,
-        },
-      ],
-      {
-        feeTokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-        feeAmount: 0,
-        relayer: signer.address,
-      },
-      abiCoder.encode(['string'], [AxelarAdaptorToAddr]),
-      {
-        // gasLimit: 1000000,
-      }
-    );
+    // const { hash, wait } = await gateway.sendMessage(
+    //   toChainId,
+    //   'abacus',
+    //   [
+    //     {
+    //       to: SampleContractToAddr,
+    //       _calldata: calldata,
+    //     },
+    //     {
+    //       to: SampleContractToAddr,
+    //       _calldata: calldata,
+    //     },
+    //     {
+    //       to: SampleContractToAddr,
+    //       _calldata: calldata,
+    //     },
+    //   ],
+    //   {
+    //     feeTokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+    //     feeAmount: 0,
+    //     relayer: signer.address,
+    //   },
+    //   abiCoder.encode(['string'], [AxelarAdaptorToAddr]),
+    //   {
+    //     // gasLimit: 1000000,
+    //   }
+    // );
 
-    console.log(`Source chain hash: ${hash}`);
-    await wait();
+    // console.log(`Source chain hash: ${hash}`);
+    // await wait();
+
+    const hash = "0xa0ca5b0c4d472f972dbbd1f2197c531bfb9b0220410d41a2b09ff4aaf0a0e384";
 
     const ccmpMessage = await getCCMPMessagePayloadFromSourceTx(hash);
     console.log(ccmpMessage);

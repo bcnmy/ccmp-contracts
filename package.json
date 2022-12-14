@@ -42,7 +42,7 @@
     "compile": "hardhat compile",
     "deploy:testnet": "hardhat run scripts/deploy/testnet.ts",
     "verify": "hardhat verify",
-    "test": "hardhat test",
+    "test": "TESTCASE_RUNNING=true hardhat test",
     "upgrade-contract": "hardhat run scripts/upgrade/upgrade.ts",
     "publisher": "yarn publish --access public --scope biconomy",
     "coverage": "DISABLE_VIA_IR=true hardhat coverage"

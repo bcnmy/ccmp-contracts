@@ -9,12 +9,16 @@ contract EstimatorAxelarAdaptor is AxelarAdaptor {
     constructor(
         address _axelarGateway,
         address _ccmpGateway,
+        address _owner,
         address _pauser
-    ) AxelarAdaptor(_axelarGateway, _ccmpGateway, _pauser) {}
+    ) AxelarAdaptor(_axelarGateway, _ccmpGateway, _owner, _pauser) {}
 
     /// @notice Dummy function to estimate gas for AxelarAdaptor.routeMessage, only to be used for simulation purposes
     /// @param _ccmpMessage The message to be verified
-    function verifyPayload(CCMPMessage calldata _ccmpMessage, bytes calldata)
+    function verifyPayload(
+        CCMPMessage calldata _ccmpMessage,
+        bytes calldata
+    )
         external
         view
         virtual
