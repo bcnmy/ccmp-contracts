@@ -8,12 +8,14 @@ contract EstimationHyperlaneAdapter is HyperlaneAdaptor {
 
     constructor(
         address _ccmpGateway,
+        address _owner,
         address _pauser,
         address _abacusConnectionManager,
         address _interchainGasPaymaster
     )
         HyperlaneAdaptor(
             _ccmpGateway,
+            _owner,
             _pauser,
             _abacusConnectionManager,
             _interchainGasPaymaster
@@ -22,7 +24,10 @@ contract EstimationHyperlaneAdapter is HyperlaneAdaptor {
 
     /// @notice Dummy function to estimate gas for Abacus.routeMessage, only to be used for simulation purposes
     /// @param _ccmpMessage The message to be verified
-    function verifyPayload(CCMPMessage calldata _ccmpMessage, bytes calldata)
+    function verifyPayload(
+        CCMPMessage calldata _ccmpMessage,
+        bytes calldata
+    )
         external
         view
         virtual

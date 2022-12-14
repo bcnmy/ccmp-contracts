@@ -9,7 +9,7 @@ import {
   GasFeePaymentArgsStruct,
 } from '../typechain-types/contracts/interfaces/ICCMPRouterAdaptor';
 import { Structs } from '../typechain-types/contracts/interfaces/IWormhole';
-import { formatBytes32String, parseUnits } from 'ethers/lib/utils';
+import { parseUnits } from 'ethers/lib/utils';
 import { use } from 'chai';
 import {
   ICCMPGateway,
@@ -62,7 +62,8 @@ describe('CCMPGateway', async function () {
     SampleContractMock: FakeContract<SampleContract>;
   const abiCoder = new ethers.utils.AbiCoder();
 
-  const getSampleCalldata = (message: string) => SampleContract.interface.encodeFunctionData('emitEvent', [message]);
+  const getSampleCalldata = (message: string) =>
+    SampleContract.interface.encodeFunctionData('emitEvent', [message]);
   const getSampleCalldataWithValidation = (message: string) =>
     SampleContract.interface.encodeFunctionData('emitWithValidation', [message]);
 
@@ -84,18 +85,21 @@ describe('CCMPGateway', async function () {
     AxelarAdaptor = await new AxelarAdaptor__factory(owner).deploy(
       MockAxelarGateway.address,
       CCMPGateway.address,
+      owner.address,
       pauser.address
     );
 
     WormholeAdaptor = await new WormholeAdaptor__factory(owner).deploy(
       MockWormholeGateway.address,
       CCMPGateway.address,
+      owner.address,
       pauser.address,
       1
     );
 
     HyperlaneAdaptor = await new HyperlaneAdaptor__factory(owner).deploy(
       CCMPGateway.address,
+      owner.address,
       pauser.address,
       MockAbacusConnectionManager.address,
       MockAbacusConnectionManager.address
@@ -110,7 +114,11 @@ describe('CCMPGateway', async function () {
 
     CCMPHelper = await new CCMPHelper__factory(owner).deploy();
 
-    Token = (await upgrades.deployProxy(new ERC20Token__factory(owner), ['Token', 'TKN', 18])) as ERC20Token;
+    Token = (await upgrades.deployProxy(new ERC20Token__factory(owner), [
+      'Token',
+      'TKN',
+      18,
+    ])) as ERC20Token;
 
     for (const signer of [owner, alice, bob, charlie, trustedForwarder, pauser]) {
       await Token.mint(signer.address, parseUnits('1000000', 18));
@@ -133,7 +141,8 @@ describe('CCMPGateway', async function () {
   });
 
   it('Should prevent non owners from setting adaptors', async function () {
-    await expect(CCMPGateway.connect(alice).setRouterAdaptor('wormhole', WormholeAdaptor.address)).to.be.reverted;
+    await expect(CCMPGateway.connect(alice).setRouterAdaptor('wormhole', WormholeAdaptor.address))
+      .to.be.reverted;
   });
 
   it('Should prevent non owners from changing pauser', async function () {
@@ -141,7 +150,9 @@ describe('CCMPGateway', async function () {
   });
 
   it('Should allow owner to change pauser', async function () {
-    await expect(CCMPGateway.setPauser(bob.address)).emit(CCMPGateway, 'PauserUpdated').withArgs(bob.address);
+    await expect(CCMPGateway.setPauser(bob.address))
+      .emit(CCMPGateway, 'PauserUpdated')
+      .withArgs(bob.address);
     expect(await CCMPGateway.pauser()).to.equal(bob.address);
   });
 
@@ -278,8 +289,9 @@ describe('CCMPGateway', async function () {
         ethers.utils.getAddress(AxelarAdaptor.address)
       );
 
-      await expect(CCMPGateway.sendMessage(chainId + 1, 'axelar', payloads, gasFeePaymentArgs, emptyBytes)).to.not.be
-        .reverted;
+      await expect(
+        CCMPGateway.sendMessage(chainId + 1, 'axelar', payloads, gasFeePaymentArgs, emptyBytes)
+      ).to.not.be.reverted;
     });
   });
 
@@ -378,10 +390,9 @@ describe('CCMPGateway', async function () {
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
       await CCMPGateway.setRouterAdaptor('axelar', AxelarAdaptor.address);
 
-      await expect(CCMPGateway.receiveMessage(message, emptyBytes, false)).to.be.revertedWithCustomError(
-        CCMPGateway,
-        'VerificationFailed'
-      );
+      await expect(
+        CCMPGateway.receiveMessage(message, emptyBytes, false)
+      ).to.be.revertedWithCustomError(CCMPGateway, 'VerificationFailed');
     });
 
     it('Should revert if contract is paused', async function () {
@@ -518,10 +529,9 @@ describe('CCMPGateway', async function () {
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
       await CCMPGateway.setRouterAdaptor('wormhole', WormholeAdaptor.address);
 
-      await expect(CCMPGateway.receiveMessage(message, emptyBytes, false)).to.be.revertedWithCustomError(
-        CCMPGateway,
-        'VerificationFailed'
-      );
+      await expect(
+        CCMPGateway.receiveMessage(message, emptyBytes, false)
+      ).to.be.revertedWithCustomError(CCMPGateway, 'VerificationFailed');
     });
 
     it('Should execute message if all checks are satisfied', async function () {
@@ -610,10 +620,9 @@ describe('CCMPGateway', async function () {
       await CCMPGateway.setGateway(chainId + 1, CCMPGateway.address);
       await CCMPGateway.setRouterAdaptor('hyperlane', HyperlaneAdaptor.address);
 
-      await expect(CCMPGateway.receiveMessage(message, emptyBytes, false)).to.be.revertedWithCustomError(
-        CCMPGateway,
-        'VerificationFailed'
-      );
+      await expect(
+        CCMPGateway.receiveMessage(message, emptyBytes, false)
+      ).to.be.revertedWithCustomError(CCMPGateway, 'VerificationFailed');
     });
 
     it('Should execute message if all checks are satisfied', async function () {
@@ -684,7 +693,10 @@ describe('CCMPGateway', async function () {
         CCMPGateway.sendMessage(1, 'wormhole', payloads, gasFeePaymentArgs, routeArgs, {
           value: gasFeePaymentArgs.feeAmount,
         })
-      ).to.changeEtherBalances([owner, charlie], [gasFeePaymentArgs.feeAmount.mul(-1), gasFeePaymentArgs.feeAmount]);
+      ).to.changeEtherBalances(
+        [owner, charlie],
+        [gasFeePaymentArgs.feeAmount.mul(-1), gasFeePaymentArgs.feeAmount]
+      );
     });
 
     it('Should revert if there is a mismatch in native token fee amount', async function () {
@@ -727,7 +739,8 @@ describe('CCMPGateway', async function () {
 
       await Token.approve(CCMPGateway.address, gasFeePaymentArgs.feeAmount);
 
-      await expect(CCMPGateway.sendMessage(1, 'wormhole', payloads, gasFeePaymentArgs, routeArgs)).to.be.reverted;
+      await expect(CCMPGateway.sendMessage(1, 'wormhole', payloads, gasFeePaymentArgs, routeArgs))
+        .to.be.reverted;
     });
   });
 

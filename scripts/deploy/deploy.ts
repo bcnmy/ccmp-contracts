@@ -1,5 +1,5 @@
 // TODO: Use CREATE2
-import { ethers } from "hardhat";
+import { ethers } from 'hardhat';
 import {
   AxelarAdaptor,
   WormholeAdaptor,
@@ -25,14 +25,14 @@ import {
   Diamond,
   ICCMPGateway__factory,
   HyperlaneAdaptor,
-} from "../../typechain-types";
-import { Contract } from "ethers";
-import { FacetCutAction, getSelectors } from "./utils";
-import { DiamondArgsStruct } from "../../typechain-types/contracts/gateway/Diamond";
+} from '../../typechain-types';
+import { Contract } from 'ethers';
+import { FacetCutAction, getSelectors } from './utils';
+import { DiamondArgsStruct } from '../../typechain-types/contracts/gateway/Diamond';
 
-const AxelarAdaptorKey = "axelar";
-const WormholeAdaptorKey = "wormhole";
-const AbacusAdaptorKey = "abacus";
+const AxelarAdaptorKey = 'axelar';
+const WormholeAdaptorKey = 'wormhole';
+const AbacusAdaptorKey = 'abacus';
 
 const waitSec = async (n: number) => await new Promise((resolve) => setTimeout(resolve, n * 1000));
 
@@ -84,7 +84,7 @@ export const deployGateway = async (
   pauser: string,
   debug: boolean = false
 ): Promise<{ contracts: GatewayContracts; constructorArgs: GatewayContractConstructorArgs }> => {
-  debug && console.log("Deploying CCMPGateway...");
+  debug && console.log('Deploying CCMPGateway...');
   const [signer] = await ethers.getSigners();
 
   // Deploy DiamondInit
@@ -92,35 +92,35 @@ export const deployGateway = async (
   // Read about how the diamondCut function works in the EIP2535 Diamonds standard
   const DiamondInit = await new DiamondInit__factory(signer).deploy();
   await DiamondInit.deployed();
-  debug && console.log("DiamondInit deployed:", DiamondInit.address);
+  debug && console.log('DiamondInit deployed:', DiamondInit.address);
 
   // Deploy facets and set the `facetCuts` variable
-  debug && console.log("Deploying facets...");
+  debug && console.log('Deploying facets...');
 
-  debug && console.log("Deploying CCMPConfigurationFacet...");
+  debug && console.log('Deploying CCMPConfigurationFacet...');
   const CCMPConfigurationFacet = await new CCMPConfigurationFacet__factory(signer).deploy();
   await CCMPConfigurationFacet.deployed();
-  debug && console.log("CCMPConfigurationFacet deployed:", CCMPConfigurationFacet.address);
+  debug && console.log('CCMPConfigurationFacet deployed:', CCMPConfigurationFacet.address);
 
-  debug && console.log("Deploying CCMPReceiverMessageFacet...");
+  debug && console.log('Deploying CCMPReceiverMessageFacet...');
   const CCMPReceiverMessageFacet = await new CCMPReceiverMessageFacet__factory(signer).deploy();
   await CCMPReceiverMessageFacet.deployed();
-  debug && console.log("CCMPReceiverMessageFacet deployed:", CCMPReceiverMessageFacet.address);
+  debug && console.log('CCMPReceiverMessageFacet deployed:', CCMPReceiverMessageFacet.address);
 
-  debug && console.log("Deploying CCMPSendMessageFacet...");
+  debug && console.log('Deploying CCMPSendMessageFacet...');
   const CCMPSendMessageFacet = await new CCMPSendMessageFacet__factory(signer).deploy();
   await CCMPSendMessageFacet.deployed();
-  debug && console.log("CCMPSendMessageFacet deployed:", CCMPSendMessageFacet.address);
+  debug && console.log('CCMPSendMessageFacet deployed:', CCMPSendMessageFacet.address);
 
-  debug && console.log("Deploying DiamondCutFacet...");
+  debug && console.log('Deploying DiamondCutFacet...');
   const DiamondCutFacet = await new DiamondCutFacet__factory(signer).deploy();
   await DiamondCutFacet.deployed();
-  debug && console.log("DiamondCutFacet deployed:", DiamondCutFacet.address);
+  debug && console.log('DiamondCutFacet deployed:', DiamondCutFacet.address);
 
-  debug && console.log("Deploying DiamondLoupeFacet...");
+  debug && console.log('Deploying DiamondLoupeFacet...');
   const DiamondLoupeFacet = await new DiamondLoupeFacet__factory(signer).deploy();
   await DiamondLoupeFacet.deployed();
-  debug && console.log("DiamondLoupeFacet deployed:", DiamondLoupeFacet.address);
+  debug && console.log('DiamondLoupeFacet deployed:', DiamondLoupeFacet.address);
 
   const facetCuts = [
     CCMPConfigurationFacet,
@@ -137,7 +137,7 @@ export const deployGateway = async (
   // Creating a function call
   // This call gets executed during deployment and can also be executed in upgrades
   // It is executed with delegatecall on the DiamondInit address.
-  let functionCall = DiamondInit.interface.encodeFunctionData("init");
+  let functionCall = DiamondInit.interface.encodeFunctionData('init');
 
   // Setting arguments that will be used in the diamond constructor
   const diamondArgs: DiamondArgsStruct = {
@@ -150,7 +150,7 @@ export const deployGateway = async (
   // deploy Diamond
   const Diamond = await new Diamond__factory(signer).deploy(facetCuts, diamondArgs);
   await Diamond.deployed();
-  debug && console.log("CCMP Gateway Diamond deployed:", Diamond.address);
+  debug && console.log('CCMP Gateway Diamond deployed:', Diamond.address);
 
   return {
     contracts: {
@@ -202,7 +202,12 @@ export const deploy = async (
   updatedConstructorArgs.AxelarAdaptor = [];
   if (axelarGateway) {
     debug && console.log(`Deploying AxelarAdaptor...`);
-    AxelarAdaptor = await new AxelarAdaptor__factory(deployer).deploy(axelarGateway, diamonds.Diamond.address, pauser);
+    AxelarAdaptor = await new AxelarAdaptor__factory(deployer).deploy(
+      axelarGateway,
+      diamonds.Diamond.address,
+      owner,
+      pauser
+    );
     updatedConstructorArgs.AxelarAdaptor = [axelarGateway, diamonds.Diamond.address, pauser];
     debug && console.log(`AxelarAdaptor: ${AxelarAdaptor.address}`);
     await waitSec(5);
@@ -215,6 +220,7 @@ export const deploy = async (
     WormholeAdaptor = await new WormholeAdaptor__factory(deployer).deploy(
       wormholeGateway,
       diamonds.Diamond.address,
+      owner,
       pauser,
       wormholeDeploymentMode
     );
@@ -228,6 +234,7 @@ export const deploy = async (
     debug && console.log(`Deploying AbacusAdapter...`);
     HyperlaneAdaptor = await new HyperlaneAdaptor__factory(deployer).deploy(
       diamonds.Diamond.address,
+      owner,
       pauser,
       abacusConnectionManager,
       abacusInterchainGasMaster
@@ -253,7 +260,11 @@ export const deploy = async (
   await configure(contracts, debug);
 
   await transferOwnership(contracts.CCMPExecutor, owner, debug);
-  await transferOwnership(ICCMPGateway__factory.connect(contracts.Diamond.address, deployer), owner, debug);
+  await transferOwnership(
+    ICCMPGateway__factory.connect(contracts.Diamond.address, deployer),
+    owner,
+    debug
+  );
   if (AxelarAdaptor) {
     await transferOwnership(AxelarAdaptor, owner, debug);
   }
@@ -267,10 +278,13 @@ export const deploy = async (
   return { contracts, constructorArgs: updatedConstructorArgs };
 };
 
-export const deploySampleContract = async (ccmpExecutor: string, debug: boolean = false): Promise<SampleContract> => {
+export const deploySampleContract = async (
+  ccmpExecutor: string,
+  debug: boolean = false
+): Promise<SampleContract> => {
   debug && console.log(`Deploying SampleContract...`);
   const SampleContract = (await (
-    await ethers.getContractFactory("SampleContract")
+    await ethers.getContractFactory('SampleContract')
   ).deploy(ccmpExecutor)) as SampleContract;
   debug && console.log(`SampleContract: ${SampleContract.address}`);
   return SampleContract;
@@ -292,15 +306,21 @@ const configure = async (contracts: CCMPContracts, debug: boolean = false) => {
 
   const CCMPGateway = ICCMPGateway__factory.connect(contracts.Diamond.address, deployer);
   if (contracts.AxelarAdaptor) {
-    await (await CCMPGateway.setRouterAdaptor(AxelarAdaptorKey, contracts.AxelarAdaptor.address)).wait();
+    await (
+      await CCMPGateway.setRouterAdaptor(AxelarAdaptorKey, contracts.AxelarAdaptor.address)
+    ).wait();
     await waitSec(5);
   }
   if (contracts.WormholeAdaptor) {
-    await (await CCMPGateway.setRouterAdaptor(WormholeAdaptorKey, contracts.WormholeAdaptor.address)).wait();
+    await (
+      await CCMPGateway.setRouterAdaptor(WormholeAdaptorKey, contracts.WormholeAdaptor.address)
+    ).wait();
     await waitSec(5);
   }
   if (contracts.HyperlaneAdaptor) {
-    await (await CCMPGateway.setRouterAdaptor(AbacusAdaptorKey, contracts.HyperlaneAdaptor.address)).wait();
+    await (
+      await CCMPGateway.setRouterAdaptor(AbacusAdaptorKey, contracts.HyperlaneAdaptor.address)
+    ).wait();
     await waitSec(5);
   }
   await CCMPGateway.setCCMPExecutor(contracts.CCMPExecutor.address);

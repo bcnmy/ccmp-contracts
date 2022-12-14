@@ -48,11 +48,12 @@ contract HyperlaneAdaptor is
 
     constructor(
         address _ccmpGateway,
+        address _owner,
         address _pauser,
         address _abacusConnectionManager,
         address _interchainGasPaymaster
     )
-        CCMPAdaptorBase(_ccmpGateway, _pauser)
+        CCMPAdaptorBase(_ccmpGateway, _owner, _pauser)
         AbacusConnectionClient(
             _abacusConnectionManager,
             _interchainGasPaymaster
@@ -131,12 +132,10 @@ contract HyperlaneAdaptor is
 
     /// @notice Called by the CCMP Gateway to route a message via Abacus
     /// @param _message The message to be routed
-    function routePayload(CCMPMessage calldata _message, bytes calldata)
-        external
-        nonReentrant
-        whenNotPaused
-        onlyCCMPGateway
-    {
+    function routePayload(
+        CCMPMessage calldata _message,
+        bytes calldata
+    ) external nonReentrant whenNotPaused onlyCCMPGateway {
         uint32 destinationChainDomainId = chainIdToDomainId[
             _message.destinationChainId
         ];
@@ -170,13 +169,10 @@ contract HyperlaneAdaptor is
     /// @param _ccmpMessage The message to be verified
     /// @return status Whether the message is verified or not
     /// @return message Message/Error string
-    function verifyPayload(CCMPMessage calldata _ccmpMessage, bytes calldata)
-        external
-        view
-        virtual
-        whenNotPaused
-        returns (bool, string memory)
-    {
+    function verifyPayload(
+        CCMPMessage calldata _ccmpMessage,
+        bytes calldata
+    ) external view virtual whenNotPaused returns (bool, string memory) {
         return
             messageHashVerified[_ccmpMessage.hash()]
                 ? (true, "")
@@ -189,17 +185,17 @@ contract HyperlaneAdaptor is
         emit DomainIdUpdated(_chainId, _domainId);
     }
 
-    function updateDomainId(uint256 _chainId, uint32 _domainId)
-        external
-        onlyOwner
-    {
+    function updateDomainId(
+        uint256 _chainId,
+        uint32 _domainId
+    ) external onlyOwner {
         _updateDomainId(_chainId, _domainId);
     }
 
-    function setHyperlaneAdaptor(uint256 _chainId, address _hyperlaneAdaptor)
-        external
-        onlyOwner
-    {
+    function setHyperlaneAdaptor(
+        uint256 _chainId,
+        address _hyperlaneAdaptor
+    ) external onlyOwner {
         chainIdToHyperlaneAdaptor[_chainId] = _hyperlaneAdaptor;
         emit HyperlaneAdaptorUpdated(_chainId, _hyperlaneAdaptor);
     }

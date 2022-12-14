@@ -30,15 +30,18 @@ abstract contract CCMPAdaptorBase is
         _;
     }
 
-    constructor(address _ccmpGateway, address _pauser) PausableBase(_pauser) {
+    constructor(
+        address _ccmpGateway,
+        address _owner,
+        address _pauser
+    ) PausableBase(_pauser) {
         ccmpGateway = ICCMPGateway(_ccmpGateway);
+        _transferOwnership(_owner);
     }
 
-    function setCCMPGateway(ICCMPGateway _ccmpGateway)
-        external
-        whenNotPaused
-        onlyOwner
-    {
+    function setCCMPGateway(
+        ICCMPGateway _ccmpGateway
+    ) external whenNotPaused onlyOwner {
         ccmpGateway = _ccmpGateway;
         emit CCMPGatewayUpdated(ccmpGateway);
     }

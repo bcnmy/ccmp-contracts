@@ -100,6 +100,24 @@ library Create3 {
         if (!success || codeSize(addr) == 0) revert ErrorCreatingContract();
     }
 
+    function addressOfProxy(bytes32 _salt) internal view returns (address) {
+        return
+            address(
+                uint160(
+                    uint256(
+                        keccak256(
+                            abi.encodePacked(
+                                hex"ff",
+                                address(this),
+                                _salt,
+                                KECCAK256_PROXY_CHILD_BYTECODE
+                            )
+                        )
+                    )
+                )
+            );
+    }
+
     /**
     @notice Computes the resulting address of a contract deployed using address(this) and the given `_salt`
     @param _salt Salt of the contract creation, resulting address will be derivated from this value only
@@ -108,21 +126,7 @@ library Create3 {
     @dev The address creation formula is: keccak256(rlp([keccak256(0xff ++ address(this) ++ _salt ++ keccak256(childBytecode))[12:], 0x01]))
   */
     function addressOf(bytes32 _salt) internal view returns (address) {
-        address proxy = address(
-            uint160(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            hex"ff",
-                            address(this),
-                            _salt,
-                            KECCAK256_PROXY_CHILD_BYTECODE
-                        )
-                    )
-                )
-            )
-        );
-
+        address proxy = addressOfProxy(_salt);
         return
             address(
                 uint160(
