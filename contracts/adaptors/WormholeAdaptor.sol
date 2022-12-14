@@ -9,7 +9,7 @@ import "./base/CCMPAdaptorBase.sol";
 /// @notice Adaptor for the Wormole protocol into the CCMP System
 contract WormholeAdaptor is CCMPAdaptorBase {
     using CCMPMessageUtils for CCMPMessage;
-    enum DeploymentConfiguartion {
+    enum DeploymentConfiguration {
         Mainnet,
         Testnet
     }
@@ -40,7 +40,7 @@ contract WormholeAdaptor is CCMPAdaptorBase {
         address _ccmpGateway,
         address _owner,
         address _pauser,
-        DeploymentConfiguartion _deploymentConfiguration
+        DeploymentConfiguration _deploymentConfiguration
     ) CCMPAdaptorBase(_ccmpGateway, _owner, _pauser) {
         if (_wormhole == address(0)) {
             revert InvalidAddress("wormhole", _wormhole);
@@ -55,7 +55,7 @@ contract WormholeAdaptor is CCMPAdaptorBase {
         wormhole = IWormhole(_wormhole);
 
         // https://docs.wormhole.com/wormhole/contracts
-        if (_deploymentConfiguration == DeploymentConfiguartion.Mainnet) {
+        if (_deploymentConfiguration == DeploymentConfiguration.Mainnet) {
             // Set Mainnet Chain IDs
             _updateWormholeChainId(2, 1);
             _updateWormholeChainId(4, 56);
@@ -69,7 +69,7 @@ contract WormholeAdaptor is CCMPAdaptorBase {
             _updateWormholeChainId(13, 8217);
             _updateWormholeChainId(14, 42220);
         } else if (
-            _deploymentConfiguration == DeploymentConfiguartion.Testnet
+            _deploymentConfiguration == DeploymentConfiguration.Testnet
         ) {
             // Set Testnet Chain IDs
             _updateWormholeChainId(2, 5);

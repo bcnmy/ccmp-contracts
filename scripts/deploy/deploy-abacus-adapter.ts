@@ -22,6 +22,7 @@ import { deployParams } from './testnet';
 
   const HyperlaneAdaptor = await new HyperlaneAdaptor__factory(signer).deploy(
     gateway,
+    params.owner,
     params.pauser,
     params.abacusConnectionManager,
     params.abacusInterchainGasMaster

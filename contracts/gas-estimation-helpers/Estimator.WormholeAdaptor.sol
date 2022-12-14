@@ -11,7 +11,7 @@ contract EstimatorWormholeAdaptor is WormholeAdaptor {
         address _ccmpGateway,
         address _owner,
         address _pauser,
-        DeploymentConfiguartion _deploymentConfiguration
+        DeploymentConfiguration _deploymentConfiguration
     )
         WormholeAdaptor(
             _wormhole,

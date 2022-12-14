@@ -21,16 +21,16 @@ contract CCMPExecutor is Ownable, ICCMPExecutor {
         _;
     }
 
-    constructor(address _ccmpGateway) Ownable() {
+    constructor(address _ccmpGateway, address _owner) Ownable() {
         ccmpGateway = _ccmpGateway;
+        _transferOwnership(_owner);
     }
 
     /// @notice Handles Execution of the received message from CCMP Gateway on destination chain.
-    function execute(address _to, bytes calldata _calldata)
-        external
-        onlyGateway
-        returns (bool success, bytes memory returndata)
-    {
+    function execute(
+        address _to,
+        bytes calldata _calldata
+    ) external onlyGateway returns (bool success, bytes memory returndata) {
         (success, returndata) = _to.call{gas: gasleft()}(_calldata);
     }
 

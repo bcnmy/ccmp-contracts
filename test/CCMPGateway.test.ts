@@ -1,7 +1,7 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { expect } from 'chai';
-import { BigNumber } from 'ethers';
-import { ethers, upgrades } from 'hardhat';
+import { BigNumber, Wallet } from 'ethers';
+import { ethers, upgrades, network } from 'hardhat';
 import { smock, FakeContract } from '@defi-wonderland/smock';
 import {
   CCMPMessagePayloadStruct,
@@ -36,6 +36,7 @@ import {
 } from '../typechain-types';
 import { deployGateway } from '../scripts/deploy/deploy';
 import { IAbacusConnectionManager__factory } from '@abacus-network/app';
+import { getDeployerInstance } from '../scripts/deploy/deploy-metadeployer';
 
 const NATIVE = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
@@ -67,7 +68,11 @@ describe('CCMPGateway', async function () {
   const getSampleCalldataWithValidation = (message: string) =>
     SampleContract.interface.encodeFunctionData('emitWithValidation', [message]);
 
+  const reset = async () => await network.provider.send('hardhat_reset');
+
   beforeEach(async function () {
+    await reset();
+
     [owner, alice, bob, charlie, trustedForwarder, pauser] = await ethers.getSigners();
 
     MockAxelarGateway = await smock.fake(IAxelarGateway__factory.abi);
@@ -76,10 +81,19 @@ describe('CCMPGateway', async function () {
 
     MockAbacusConnectionManager = await smock.fake(IAbacusConnectionManager__factory.abi);
 
-    const { contracts: Diamond } = await deployGateway(pauser.address);
+    await owner.sendTransaction({
+      to: new Wallet(process.env.METADEPLOYER_PRIVATE_KEY!, ethers.provider).address,
+      value: parseUnits('1', 'ether'),
+    });
+    const deployer = await getDeployerInstance();
+
+    const { contracts: Diamond } = await deployGateway(deployer, pauser.address);
     CCMPGateway = ICCMPGateway__factory.connect(Diamond.Diamond.address, owner);
 
-    CCMPExecutor = await new CCMPExecutor__factory(owner).deploy(CCMPGateway.address);
+    CCMPExecutor = await new CCMPExecutor__factory(owner).deploy(
+      CCMPGateway.address,
+      owner.address
+    );
     await CCMPGateway.setCCMPExecutor(CCMPExecutor.address);
 
     AxelarAdaptor = await new AxelarAdaptor__factory(owner).deploy(

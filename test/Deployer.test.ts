@@ -1,7 +1,7 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { ethers, network } from 'hardhat';
 import { Deployer, Deployer__factory, SampleContract__factory } from '../typechain-types';
-import { deploy } from '../scripts/deploy/deploy-create3';
+import { deployCreate3 } from '../scripts/deploy/utils';
 import { expect } from 'chai';
 
 describe('Deployer', async () => {
@@ -19,7 +19,7 @@ describe('Deployer', async () => {
   });
 
   it('Should deploy contract successfully', async () => {
-    const contractAddress = await deploy(
+    const contractAddress = await deployCreate3(
       Deployer.address,
       'SampleContract',
       new SampleContract__factory(signer),
@@ -34,7 +34,7 @@ describe('Deployer', async () => {
 
   it('Deployment Address Should not depend upon constructor arguments', async () => {
     expect(signer2.address).to.not.equal(signer3.address);
-    const contractAddress = await deploy(
+    const contractAddress = await deployCreate3(
       Deployer.address,
       'SampleContract',
       new SampleContract__factory(signer),
@@ -47,7 +47,7 @@ describe('Deployer', async () => {
 
     const NewDeployer = await new Deployer__factory(signer).deploy();
     expect(NewDeployer.address).to.equal(Deployer.address);
-    const contractAddressAfterReset = await deploy(
+    const contractAddressAfterReset = await deployCreate3(
       Deployer.address,
       'SampleContract',
       new SampleContract__factory(signer),
@@ -60,7 +60,7 @@ describe('Deployer', async () => {
 
   it('Deployment Address Should not depend upon signer nonce', async () => {
     expect(signer2.address).to.not.equal(signer3.address);
-    const contractAddress = await deploy(
+    const contractAddress = await deployCreate3(
       Deployer.address,
       'SampleContract',
       new SampleContract__factory(signer),
@@ -79,7 +79,7 @@ describe('Deployer', async () => {
     await signer.sendTransaction({ to: signer2.address, value: 1 });
     await signer.sendTransaction({ to: signer2.address, value: 1 });
 
-    const contractAddressAfterReset = await deploy(
+    const contractAddressAfterReset = await deployCreate3(
       Deployer.address,
       'SampleContract',
       new SampleContract__factory(signer),
@@ -92,7 +92,7 @@ describe('Deployer', async () => {
 
   it('Deployment Address Should depend upon salt', async () => {
     expect(signer2.address).to.not.equal(signer3.address);
-    const contractAddress = await deploy(
+    const contractAddress = await deployCreate3(
       Deployer.address,
       'SampleContract',
       new SampleContract__factory(signer),
@@ -105,7 +105,7 @@ describe('Deployer', async () => {
 
     const NewDeployer = await new Deployer__factory(signer).deploy();
     expect(NewDeployer.address).to.equal(Deployer.address);
-    const contractAddressAfterReset = await deploy(
+    const contractAddressAfterReset = await deployCreate3(
       Deployer.address,
       'SampleContract2',
       new SampleContract__factory(signer),
