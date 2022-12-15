@@ -27,6 +27,9 @@ abstract contract CCMPReceiverBase {
         emit LiquidityPoolUpdated(address(_newLiquidityPool));
     }
 
+    /// @notice This function is called by the receiver contract on the destination chain to get the source of the sent message
+    ///         CCMPGateway will append the source details at the end of the calldata, this is done so that existing (upgradeable)
+    ///         contracts do not need to change their function signatures
     function _ccmpMsgOrigin()
         internal
         view
@@ -48,6 +51,14 @@ abstract contract CCMPReceiverBase {
         }
     }
 
+    /// @notice This function is called by the receiver contract on the destination chain to get the source of the sent message.
+    ///         This function is to be used when the message is sent through the hyphen liquidtiy pool on the source chain.
+    ///         On the source chain, the flow of messages looks like this: 
+    ///         Source: DappContract -> Hyphen -> CCMPGateway -> Underlying Protocol (wormhole/axelar/hyperlane) -> off chain magic
+    ///         Destination: relayer -> CCMPGateway -> DappContract
+    ///         From CCMPGateway's perspective, the message source would be Hyphen, but this information is not useful on the destination chain
+    ///         Therefore, Hyphen will append the source contract address to the calldata before sending the message to CCMPGateway
+    ///         The appended 'Actual Sender' is extraced by this function
     function _hyphenMsgOrigin()
         internal
         view
