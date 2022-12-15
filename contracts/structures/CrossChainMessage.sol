@@ -4,8 +4,6 @@ pragma solidity 0.8.16;
 import "../interfaces/ICCMPGateway.sol";
 import "../interfaces/ICCMPRouterAdaptor.sol";
 
-// TODO: Optimize Structs for Packing
-
 struct CCMPMessagePayload {
     address to;
     bytes _calldata;
@@ -50,7 +48,6 @@ struct CCMPMessage {
 }
 
 library CCMPMessageUtils {
-    // TODO: Optimize function to cache value somehow
     function hash(CCMPMessage memory message) internal pure returns (bytes32) {
         return
             keccak256(
