@@ -1,11 +1,17 @@
+import { getContractAddress } from 'ethers/lib/utils';
 import { ethers } from 'hardhat';
 import { Deployer, Deployer__factory } from '../../typechain-types';
 
 export const getDeployerInstance = async (debug?: boolean): Promise<Deployer> => {
-  const deployerAddress = process.env.DEPLOYER_ADDRESS;
-  if (!deployerAddress) {
-    throw new Error('DEPLOYER_ADDRESS not set');
+  const metaDeployerPrivateKey = process.env.METADEPLOYER_PRIVATE_KEY;
+  if (!metaDeployerPrivateKey) {
+    throw new Error('META_DEPLOYER_PRIVATE_KEY not set');
   }
+  const metaDeployer = new ethers.Wallet(metaDeployerPrivateKey, ethers.provider);
+  const deployerAddress = getContractAddress({
+    from: metaDeployer.address,
+    nonce: await ethers.provider.getTransactionCount(metaDeployer.address),
+  });
 
   const provider = ethers.provider;
   const [signer] = await ethers.getSigners();
