@@ -19,12 +19,12 @@ export const deployCreate3 = async (
   contractFactory: ContractFactory,
   constructorArguments: any[],
   name: string,
+  debug: boolean = false,
   options?: {
     gasLimit?: number;
     gasPrice?: number;
     nonce?: number;
-  },
-  debug: boolean = false
+  }
 ): Promise<string> => {
   const [signer] = await ethers.getSigners();
   if (!deployerContractAddress) {
@@ -42,6 +42,17 @@ export const deployCreate3 = async (
     );
   const deploymentSalt = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(salt));
   const Deployer = Deployer__factory.connect(deployerContractAddress, signer);
+
+  // Check if contract is already deployed
+  const counterFactualAddress = await Deployer.addressOf(deploymentSalt);
+  debug && console.log(`Counterfactual address for ${name}: ${counterFactualAddress}`);
+  const code = await signer.provider!.getCode(counterFactualAddress);
+  if (code !== '0x') {
+    debug && console.log(`${name} already deployed at ${counterFactualAddress}`);
+    return counterFactualAddress;
+  }
+
+  // Deploy the contract
   const { wait, hash } = await Deployer.deploy(deploymentSalt, creationCode, options || {});
   debug && console.log(`Submitted transaction ${hash} for ${name} deployment`);
   const { status, logs, blockNumber } = await wait();
@@ -61,6 +72,11 @@ export const deployCreate3 = async (
     );
   }
   const contractAddress = Deployer.interface.parseLog(contractDeployedLog).args.contractAddress;
+  if (contractAddress !== counterFactualAddress) {
+    throw new Error(
+      `Transaction ${hash} for deploying ${name} emitted wrong address: Expected: ${counterFactualAddress}, Actual: ${contractAddress}`
+    );
+  }
   debug && console.log(`Deployed ${name} at ${contractAddress}`);
   return contractAddress;
 };

@@ -100,7 +100,8 @@ export const deployGateway = async (
       DEPLOYMENT_SALTS.DiamondInit,
       new DiamondInit__factory(signer),
       [],
-      'DiamondInit'
+      'DiamondInit',
+      debug
     ),
     signer
   );
@@ -116,7 +117,8 @@ export const deployGateway = async (
       DEPLOYMENT_SALTS.CCMPConfigurationFacet,
       new CCMPConfigurationFacet__factory(signer),
       [],
-      'CCMPConfigurationFacet'
+      'CCMPConfigurationFacet',
+      debug
     ),
     signer
   );
@@ -129,7 +131,8 @@ export const deployGateway = async (
       DEPLOYMENT_SALTS.CCMPReceiverMessageFacet,
       new CCMPReceiverMessageFacet__factory(signer),
       [],
-      'CCMPReceiverMessageFacet'
+      'CCMPReceiverMessageFacet',
+      debug
     ),
     signer
   );
@@ -142,7 +145,8 @@ export const deployGateway = async (
       DEPLOYMENT_SALTS.CCMPSendMessageFacet,
       new CCMPSendMessageFacet__factory(signer),
       [],
-      'CCMPSendMessageFacet'
+      'CCMPSendMessageFacet',
+      debug
     ),
     signer
   );
@@ -155,7 +159,8 @@ export const deployGateway = async (
       DEPLOYMENT_SALTS.DiamondCutFacet,
       new DiamondCutFacet__factory(signer),
       [],
-      'DiamondCutFacet'
+      'DiamondCutFacet',
+      debug
     ),
     signer
   );
@@ -168,7 +173,8 @@ export const deployGateway = async (
       DEPLOYMENT_SALTS.DiamondLoupeFacet,
       new DiamondLoupeFacet__factory(signer),
       [],
-      'DiamondLoupeFacet'
+      'DiamondLoupeFacet',
+      debug
     ),
     signer
   );
@@ -206,7 +212,8 @@ export const deployGateway = async (
       DEPLOYMENT_SALTS.Diamond,
       new Diamond__factory(signer),
       [facetCuts, diamondArgs],
-      'Diamond'
+      'Diamond',
+      debug
     ),
     signer
   );
@@ -275,7 +282,8 @@ export const deploy = async (
       DEPLOYMENT_SALTS.CCMPExecutor,
       new CCMPExecutor__factory(signer),
       updatedConstructorArgs.CCMPExecutor,
-      'CCMPExecutor'
+      'CCMPExecutor',
+      debug
     ),
     signer
   );
@@ -297,7 +305,8 @@ export const deploy = async (
         DEPLOYMENT_SALTS.AxelarAdaptor,
         new AxelarAdaptor__factory(signer),
         updatedConstructorArgs.AxelarAdaptor,
-        'AxelarAdaptor'
+        'AxelarAdaptor',
+        debug
       ),
       signer
     );
@@ -323,7 +332,8 @@ export const deploy = async (
         DEPLOYMENT_SALTS.WormholeAdaptor,
         new WormholeAdaptor__factory(signer),
         updatedConstructorArgs.WormholeAdaptor,
-        'WormholeAdaptor'
+        'WormholeAdaptor',
+        debug
       ),
       signer
     );
@@ -347,7 +357,8 @@ export const deploy = async (
         DEPLOYMENT_SALTS.HyperlaneAdaptor,
         new HyperlaneAdaptor__factory(signer),
         updatedConstructorArgs.HyperlaneAdaptor,
-        'HyperlaneAdaptor'
+        'HyperlaneAdaptor',
+        debug
       ),
       signer
     );
