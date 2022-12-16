@@ -10,4 +10,8 @@ contract Deployer {
         address deployedContract = Create3.create3(_salt, _creationCode);
         emit ContractDeployed(deployedContract);
     }
+
+    function addressOf(bytes32 _salt) external view returns (address) {
+        return Create3.addressOf(_salt);
+    }
 }

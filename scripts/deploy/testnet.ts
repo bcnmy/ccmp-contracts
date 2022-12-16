@@ -9,6 +9,16 @@ const deployParamsBase = {
 };
 
 export const deployParams: Record<number, DeployParams> = {
+  420: {
+    ...deployParamsBase,
+    abacusConnectionManager: '0x16B710b86CAd07E6F1C531861a16F5feC29dba37',
+    abacusInterchainGasMaster: '0xeb6f11189197223c656807a83B0DD374f9A6dF44',
+  },
+  421613: {
+    ...deployParamsBase,
+    abacusConnectionManager: '0x4926a10788306D84202A2aDbd290b7743146Cc17',
+    abacusInterchainGasMaster: '0x679Dc08cC3A4acFeea2f7CAFAa37561aE0b41Ce7',
+  },
   80001: {
     ...deployParamsBase,
     axelarGateway: '0xBF62ef1486468a6bd26Dd669C06db43dEd5B849B',
@@ -29,6 +39,8 @@ export const deployParams: Record<number, DeployParams> = {
     ...deployParamsBase,
     wormholeGateway: '0x706abc4E45D419950511e474C7B9Ed348A4a716c',
     wormholeDeploymentMode: 1,
+    abacusConnectionManager: '0x01812D60958798695391dacF092BAc4a715B1718',
+    abacusInterchainGasMaster: '0x44b764045BfDC68517e10e783E69B376cef196B2',
   },
   4002: {
     ...deployParamsBase,
@@ -40,6 +52,8 @@ export const deployParams: Record<number, DeployParams> = {
     ...deployParamsBase,
     axelarGateway: '0x4D147dCb984e6affEEC47e44293DA442580A3Ec0',
     wormholeGateway: '0x68605AD7b15c732a30b1BbC62BE8F2A509D74b4D',
+    abacusConnectionManager: '0xe403E16db1f5997bC62Dc611A8d42836364A7f01',
+    abacusInterchainGasMaster: '0x155b1F1801030Ea4dF038107d3cc1b4bA496916e',
     wormholeDeploymentMode: 1,
   },
   31337: {
@@ -73,7 +87,11 @@ if (require.main === module) {
 
     for (const [key, contract] of Object.entries(contracts)) {
       const contractName = key as keyof typeof constructorArgs;
-      await verifyContract(contract.address, constructorArgs[contractName] || []);
+      try {
+        await verifyContract(contract.address, constructorArgs[contractName] || []);
+      } catch (e) {
+        console.log(`Failed to verify ${key}: ${e}`);
+      }
     }
   })();
 }

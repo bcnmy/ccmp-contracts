@@ -1,6 +1,7 @@
 import { getContractAddress } from 'ethers/lib/utils';
 import { ethers } from 'hardhat';
 import { Deployer, Deployer__factory } from '../../typechain-types';
+import { verifyContract } from '../verify/verify';
 
 export const getDeployerInstance = async (debug?: boolean): Promise<Deployer> => {
   const metaDeployerPrivateKey = process.env.METADEPLOYER_PRIVATE_KEY;
@@ -10,7 +11,7 @@ export const getDeployerInstance = async (debug?: boolean): Promise<Deployer> =>
   const metaDeployer = new ethers.Wallet(metaDeployerPrivateKey, ethers.provider);
   const deployerAddress = getContractAddress({
     from: metaDeployer.address,
-    nonce: await ethers.provider.getTransactionCount(metaDeployer.address),
+    nonce: 0,
   });
 
   const provider = ethers.provider;
@@ -28,6 +29,7 @@ export const getDeployerInstance = async (debug?: boolean): Promise<Deployer> =>
     const deployer = await new Deployer__factory(metaDeployerSigner).deploy();
     await deployer.deployed();
     debug && console.log(`Deployer deployed at ${deployer.address} on chain ${chainId}`);
+    setTimeout(async () => await verifyContract(deployer.address, []), 10000);
   } else {
     console.log(`Deployer already deployed on chain ${chainId}`);
   }
