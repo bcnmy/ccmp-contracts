@@ -25,7 +25,7 @@ import {
   sourceHyphen,
   exitBatchHelper,
   sourceToken,
-} from './config';
+} from '../config';
 
 const wormholeRpcHost = 'https://wormhole-v2-testnet-api.certus.one';
 
@@ -34,21 +34,21 @@ const abiCoder = new ethers.utils.AbiCoder();
 const CONSISTENCY_LEVEL = 1;
 
 const getVaa = async (sourceTxHash: string): Promise<Uint8Array> => {
-  const emitter = getEmitterAddressEth(fromContracts.WormholeAdaptor);
+  const emitter = getEmitterAddressEth(fromContracts.ccmp.WormholeAdaptor);
   console.log(`Emitter Address for Wormhole Adapter: ${emitter}`);
 
   const receipt = await ethers.provider.getTransactionReceipt(sourceTxHash);
-  const sequence = parseSequenceFromLogEth(receipt, fromContracts.wormholeBridgeAddress);
+  const sequence = parseSequenceFromLogEth(receipt, fromContracts.wormhole.bridgeAddress);
   console.log(`Sequence for Wormhole Adapter: ${sequence}`);
 
   console.log(`Getting VAA for source transaction ${sourceTxHash}...`);
   return new Promise<Uint8Array>((resolve, reject) => {
     const id = setInterval(async () => {
       try {
-        console.log(wormholeRpcHost, fromContracts.emitterChain, emitter, sequence);
+        console.log(wormholeRpcHost, fromContracts.wormhole.emitterChain, emitter, sequence);
         const { vaaBytes } = await getSignedVAA(
           wormholeRpcHost,
-          fromContracts.emitterChain,
+          fromContracts.wormhole.emitterChain,
           emitter,
           sequence,
           {
@@ -75,7 +75,7 @@ const executeApprovedTransaction = async (
   try {
     console.log(message);
 
-    const wormhole = IWormhole__factory.connect(toContracts.wormholeBridgeAddress, gateway.signer);
+    const wormhole = IWormhole__factory.connect(toContracts.wormhole.bridgeAddress, gateway.signer);
 
     const vaaParsed = await wormhole.parseAndVerifyVM(vaa);
     console.log('VAA: ', vaaParsed);
@@ -109,74 +109,12 @@ const preCheck = async () => {
 
   if ((await fromGateway.gateway(toChainId)) === ethers.constants.AddressZero) {
     console.log(`Gateway not set on source chain`);
-    await (await fromGateway.setGateway(toChainId, toContracts.Diamond)).wait();
+    await (await fromGateway.setGateway(toChainId, toContracts.ccmp.Diamond)).wait();
   }
 
   if ((await toGateway.gateway(fromChainId)) === ethers.constants.AddressZero) {
     console.log(`Gateway not set on exit chain`);
-    await (await toGateway.setGateway(fromChainId, fromContracts.Diamond)).wait();
-  }
-};
-
-const simpleMessage = async () => {
-  await preCheck();
-
-  const gateway = sourceGateway();
-  const token = sourceToken();
-
-  const sampleContract = SampleContract__factory.connect(
-    fromContracts.sampleContract,
-    gateway.signer
-  );
-  const calldata = sampleContract.interface.encodeFunctionData('emitEvent', ['Hello World']);
-
-  try {
-    const { hash, wait } = await gateway.sendMessage(
-      80001,
-      'wormhole',
-      [
-        {
-          to: toContracts.sampleContract,
-          _calldata: calldata,
-        },
-        {
-          to: toContracts.sampleContract,
-          _calldata: calldata,
-        },
-        {
-          to: toContracts.sampleContract,
-          _calldata: calldata,
-        },
-      ],
-      {
-        feeTokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-        feeAmount: 0,
-        relayer: '0x0000000000000000000000000000000000000001',
-      },
-      abiCoder.encode(['uint256'], [CONSISTENCY_LEVEL]),
-      {
-        gasPrice: 50 * 1e9,
-      }
-    );
-
-    console.log(`Source chain hash: ${hash}`);
-    await wait(1);
-
-    const ccmpMessage = await getCCMPMessagePayloadFromSourceTx(hash);
-
-    const vaa = await getVaa(hash);
-
-    await executeApprovedTransaction(hash, ccmpMessage, vaa);
-  } catch (e) {
-    console.error(`Error executing transaction`);
-    const errorData = (e as any).error?.data;
-    if (errorData) {
-      console.log(errorData);
-      const error = gateway.interface.parseError(errorData);
-      console.log(error);
-    } else {
-      console.log(e);
-    }
+    await (await toGateway.setGateway(fromChainId, fromContracts.ccmp.Diamond)).wait();
   }
 };
 
@@ -185,27 +123,27 @@ const hyphenDepositAndCall = async () => {
 
   const hyphen = sourceHyphen();
   const gateway = sourceGateway();
-  const sourceDecimals = BigNumber.from(10).pow(fromContracts.decimals);
+  const sourceDecimals = BigNumber.from(10).pow(fromContracts.test.decimals);
   const token = sourceToken();
   const signerAddress = await gateway.signer.getAddress();
 
-  const approval = await token.allowance(signerAddress, fromContracts.hyphen);
+  const approval = await token.allowance(signerAddress, fromContracts.hyphen.liquidityPool);
   console.log(`Approval To Hyphen: ${approval.toString()}`);
   if (approval.lt(ethers.constants.MaxInt256.div(2))) {
     console.log(`Approving token transfer to hyphen...`);
-    await token.approve(fromContracts.hyphen, ethers.constants.MaxUint256);
+    await token.approve(fromContracts.hyphen.liquidityPool, ethers.constants.MaxUint256);
   }
 
   try {
     const { hash, wait } = await hyphen.depositAndCall(
       toChainId,
-      fromContracts.token,
+      fromContracts.test.token,
       await hyphen.signer.getAddress(),
       BigNumber.from(100).mul(sourceDecimals),
       'CCMPTest',
       [],
       {
-        feeTokenAddress: fromContracts.token,
+        feeTokenAddress: fromContracts.test.token,
         feeAmount: BigNumber.from(10).mul(sourceDecimals),
         relayer: '0x0000000000000000000000000000000000000001',
       },
@@ -248,41 +186,41 @@ const hyphenDepositAndCallWithBatchHelper = async () => {
 
   const hyphen = sourceHyphen();
   const gateway = sourceGateway();
-  const sourceDecimals = BigNumber.from(10).pow(fromContracts.decimals);
+  const sourceDecimals = BigNumber.from(10).pow(fromContracts.test.decimals);
   const token = sourceToken();
   const signerAddress = await gateway.signer.getAddress();
   const batchHelper = exitBatchHelper();
 
   // Check Token Approval
-  const approval = await token.allowance(signerAddress, fromContracts.hyphen);
+  const approval = await token.allowance(signerAddress, fromContracts.hyphen.liquidityPool);
   console.log(`Approval To Hyphen: ${approval.toString()}`);
   if (approval.lt(ethers.constants.MaxInt256.div(2))) {
     console.log(`Approving token transfer to hyphen...`);
-    await token.approve(fromContracts.hyphen, ethers.constants.MaxUint256);
+    await token.approve(fromContracts.hyphen.liquidityPool, ethers.constants.MaxUint256);
   }
 
   try {
     // TODO: Fetch via Off Chain Call
     const gasFeePaymentArgs = {
-      feeTokenAddress: fromContracts.token,
+      feeTokenAddress: fromContracts.test.token,
       feeAmount: BigNumber.from(10).mul(sourceDecimals),
       relayer: '0x0000000000000000000000000000000000000001',
     };
 
     const params = {
       toChainId,
-      tokenAddress: fromContracts.token,
+      tokenAddress: fromContracts.test.token,
       receiver: batchHelper.address,
       amount: BigNumber.from(100).mul(sourceDecimals),
       tag: 'CCMPTest',
       payloads: [
         {
-          to: toContracts.batchHelper,
+          to: toContracts.test.batchHelper,
           _calldata: batchHelper.interface.encodeFunctionData('execute', [
-            toContracts.token,
-            toContracts.lpToken,
-            toContracts.liquidityProviders,
-            toContracts.liquidityFarming,
+            toContracts.test.token,
+            toContracts.hyphen.lpToken,
+            toContracts.hyphen.liquidityProviders,
+            toContracts.hyphen.liquidityFarming,
             signerAddress,
           ]),
         },

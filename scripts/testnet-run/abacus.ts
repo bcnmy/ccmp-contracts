@@ -18,7 +18,7 @@ import {
   sourceHyphen,
   exitBatchHelper,
   sourceToken,
-} from './config';
+} from '../config';
 
 const core = AbacusCore.fromEnvironment(
   'testnet2',
@@ -54,7 +54,7 @@ const waitUntilTxStatus = async (txHash: string) => {
 
 const executeApprovedTransaction = async (txHash: string, message: CCMPMessageStruct) => {
   console.log(`Executing source transaction message ${txHash} on exit chain...`);
-  const { Diamond: CCMPGatewayAddrTo } = toContracts;
+  const { Diamond: CCMPGatewayAddrTo } = toContracts.ccmp;
   const provider = new ethers.providers.JsonRpcProvider(toChain.url);
 
   const wallet = new ethers.Wallet(process.env.PRIVATE_KEY!, provider);
@@ -87,82 +87,18 @@ const executeApprovedTransaction = async (txHash: string, message: CCMPMessageSt
   }
 };
 
-const simpleMessage = async () => {
-  const [signer] = await ethers.getSigners();
-
-  const { Diamond: CCMPGatewayFromAddr } = fromContracts;
-  const { sampleContract: SampleContractToAddr, AxelarAdaptor: AxelarAdaptorToAddr } = toContracts;
-
-  const gateway = ICCMPGateway__factory.connect(CCMPGatewayFromAddr, signer);
-
-  const sampleContract = SampleContract__factory.connect(SampleContractToAddr, signer);
-  const calldata = sampleContract.interface.encodeFunctionData('emitEvent', ['Hello World']);
-
-  try {
-    // const { hash, wait } = await gateway.sendMessage(
-    //   toChainId,
-    //   'abacus',
-    //   [
-    //     {
-    //       to: SampleContractToAddr,
-    //       _calldata: calldata,
-    //     },
-    //     {
-    //       to: SampleContractToAddr,
-    //       _calldata: calldata,
-    //     },
-    //     {
-    //       to: SampleContractToAddr,
-    //       _calldata: calldata,
-    //     },
-    //   ],
-    //   {
-    //     feeTokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-    //     feeAmount: 0,
-    //     relayer: signer.address,
-    //   },
-    //   abiCoder.encode(['string'], [AxelarAdaptorToAddr]),
-    //   {
-    //     // gasLimit: 1000000,
-    //   }
-    // );
-
-    // console.log(`Source chain hash: ${hash}`);
-    // await wait();
-
-    const hash = "0xa0ca5b0c4d472f972dbbd1f2197c531bfb9b0220410d41a2b09ff4aaf0a0e384";
-
-    const ccmpMessage = await getCCMPMessagePayloadFromSourceTx(hash);
-    console.log(ccmpMessage);
-
-    await waitUntilTxStatus(hash);
-
-    await executeApprovedTransaction(hash, ccmpMessage);
-  } catch (e) {
-    console.error(`Error executing transaction`, e);
-    const errorData = (e as any).error?.data;
-    if (errorData) {
-      console.log(errorData);
-      const error = gateway.interface.parseError(errorData);
-      console.log(error);
-    } else {
-      console.log(e);
-    }
-  }
-};
-
 const preCheck = async () => {
   const fromGateway = sourceGateway();
   const toGateway = exitGateway();
 
   if ((await fromGateway.gateway(toChainId)) === ethers.constants.AddressZero) {
     console.log(`Gateway not set on source chain`);
-    await (await fromGateway.setGateway(toChainId, toContracts.Diamond)).wait();
+    await (await fromGateway.setGateway(toChainId, toContracts.ccmp.Diamond)).wait();
   }
 
   if ((await toGateway.gateway(fromChainId)) === ethers.constants.AddressZero) {
     console.log(`Gateway not set on exit chain`);
-    await (await toGateway.setGateway(fromChainId, fromContracts.Diamond)).wait();
+    await (await toGateway.setGateway(fromChainId, fromContracts.ccmp.Diamond)).wait();
   }
 };
 
@@ -171,23 +107,23 @@ const hyphenDepositAndCallWithBatchHelper = async () => {
 
   const hyphen = sourceHyphen();
   const gateway = sourceGateway();
-  const sourceDecimals = BigNumber.from(10).pow(fromContracts.decimals);
+  const sourceDecimals = BigNumber.from(10).pow(fromContracts.test.decimals);
   const token = sourceToken();
   const signerAddress = await gateway.signer.getAddress();
   const batchHelper = exitBatchHelper();
 
   // Check Token Approval
-  const approval = await token.allowance(signerAddress, fromContracts.hyphen);
+  const approval = await token.allowance(signerAddress, fromContracts.hyphen.liquidityPool);
   console.log(`Approval To Hyphen: ${approval.toString()}`);
   if (approval.lt(ethers.constants.MaxInt256.div(2))) {
     console.log(`Approving token transfer to hyphen...`);
-    await token.approve(fromContracts.hyphen, ethers.constants.MaxUint256);
+    await token.approve(fromContracts.hyphen.liquidityPool, ethers.constants.MaxUint256);
   }
 
   try {
     // TODO: Fetch via Off Chain Call
     const gasFeePaymentArgs = {
-      feeTokenAddress: fromContracts.token,
+      feeTokenAddress: fromContracts.test.token,
       feeAmount: BigNumber.from(10).mul(sourceDecimals),
       relayer: '0x0000000000000000000000000000000000000001',
     };
@@ -195,18 +131,18 @@ const hyphenDepositAndCallWithBatchHelper = async () => {
     // Perform Source Chain Transaction
     const { hash, wait } = await hyphen.depositAndCall({
       toChainId,
-      tokenAddress: fromContracts.token,
+      tokenAddress: fromContracts.test.token,
       receiver: batchHelper.address,
       amount: BigNumber.from(100).mul(sourceDecimals),
       tag: 'CCMPTest',
       payloads: [
         {
-          to: toContracts.batchHelper,
+          to: toContracts.test.batchHelper,
           _calldata: batchHelper.interface.encodeFunctionData('execute', [
-            toContracts.token,
-            toContracts.lpToken,
-            toContracts.liquidityProviders,
-            toContracts.liquidityFarming,
+            toContracts.test.token,
+            toContracts.hyphen.lpToken,
+            toContracts.hyphen.liquidityProviders,
+            toContracts.hyphen.liquidityFarming,
             signerAddress,
           ]),
         },
