@@ -150,8 +150,8 @@ describe('CCMPGateway', async function () {
       .to.emit(CCMPGateway, 'AdaptorUpdated')
       .withArgs('wormhole', WormholeAdaptor.address);
 
-    expect(await CCMPGateway.routerAdator('axelar')).to.equal(AxelarAdaptor.address);
-    expect(await CCMPGateway.routerAdator('wormhole')).to.equal(WormholeAdaptor.address);
+    expect(await CCMPGateway.routerAdaptor('axelar')).to.equal(AxelarAdaptor.address);
+    expect(await CCMPGateway.routerAdaptor('wormhole')).to.equal(WormholeAdaptor.address);
   });
 
   it('Should prevent non owners from setting adaptors', async function () {

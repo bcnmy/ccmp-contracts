@@ -87,12 +87,34 @@ contract WormholeAdaptor is CCMPAdaptorBase {
         }
     }
 
+    function _setWormholeAdaptorAddress(
+        uint256 _chainId,
+        address _adaptor
+    ) internal {
+        chainIdToWormholeAdaptor[_chainId] = _adaptor;
+        emit WormholeAdaptorUpdated(_chainId, _adaptor);
+    }
+
     function setWormholeAdaptorAddress(
         uint256 _chainId,
         address _adaptor
     ) external onlyOwner {
-        chainIdToWormholeAdaptor[_chainId] = _adaptor;
-        emit WormholeAdaptorUpdated(_chainId, _adaptor);
+        _setWormholeAdaptorAddress(_chainId, _adaptor);
+    }
+
+    function setWormholeAdaptorAddressBatch(
+        uint256[] calldata _chainIds,
+        address[] calldata _adaptors
+    ) external onlyOwner {
+        if (_chainIds.length != _adaptors.length) {
+            revert ParameterArrayLengthMismatch();
+        }
+        uint256 length = _chainIds.length;
+        unchecked {
+            for (uint256 i = 0; i < length; ++i) {
+                _setWormholeAdaptorAddress(_chainIds[i], _adaptors[i]);
+            }
+        }
     }
 
     function updateWormhole(IWormhole _wormhole) external onlyOwner {

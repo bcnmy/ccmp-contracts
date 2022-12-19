@@ -21,8 +21,6 @@ abstract contract CCMPAdaptorBase is
 {
     ICCMPGateway public ccmpGateway;
 
-    event CCMPGatewayUpdated(ICCMPGateway indexed newCCMPGateway);
-
     modifier onlyCCMPGateway() {
         if (_msgSender() != address(ccmpGateway)) {
             revert CallerIsNotCCMPGateway();
