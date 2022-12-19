@@ -110,6 +110,8 @@ interface ICCMPGatewayReceiver is ICCMPGatewayBase {
 }
 
 interface ICCMPConfiguration {
+    error ParameterArrayLengthMismatch();
+
     // Events
     event GatewayUpdated(
         uint256 indexed destinationChainId,
@@ -124,22 +126,32 @@ interface ICCMPConfiguration {
     // Functions
     function setGateway(uint256 _chainId, ICCMPGateway _gateway) external;
 
-    function setRouterAdaptor(string calldata name, ICCMPRouterAdaptor adaptor)
-        external;
+    function setRouterAdaptor(
+        string calldata name,
+        ICCMPRouterAdaptor adaptor
+    ) external;
+
+    function setGatewayBatch(
+        uint256[] calldata _chainId,
+        ICCMPGateway[] calldata _gateway
+    ) external;
+
+    function setRouterAdaptorBatch(
+        string[] calldata names,
+        ICCMPRouterAdaptor[] calldata adaptors
+    ) external;
 
     function setCCMPExecutor(ICCMPExecutor _ccmpExecutor) external;
 
     function setPauser(address _pauser) external;
 
-    function gateway(uint256 _chainId)
-        external
-        view
-        returns (ICCMPGateway gateway_);
+    function gateway(
+        uint256 _chainId
+    ) external view returns (ICCMPGateway gateway_);
 
-    function routerAdator(string calldata name)
-        external
-        view
-        returns (ICCMPRouterAdaptor adaptor);
+    function routerAdaptor(
+        string calldata name
+    ) external view returns (ICCMPRouterAdaptor adaptor);
 
     function ccmpExecutor() external view returns (ICCMPExecutor executor);
 
