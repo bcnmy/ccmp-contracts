@@ -1,6 +1,5 @@
-import { run, ethers } from "hardhat";
-import { providers } from "ethers";
-import type { CCMPContracts } from "../deploy/deploy";
+import { run, ethers } from 'hardhat';
+import { providers } from 'ethers';
 
 export const getImplementationAddress = async (
   proxyAddress: string,
@@ -8,18 +7,22 @@ export const getImplementationAddress = async (
 ) => {
   return ethers.utils.hexlify(
     ethers.BigNumber.from(
-      await provider.send("eth_getStorageAt", [
+      await provider.send('eth_getStorageAt', [
         proxyAddress,
-        "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc",
-        "latest",
+        '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc',
+        'latest',
       ])
     )
   );
 };
 
 export const verifyContract = async (address: string, constructorArguments: any[]) => {
+  const chainId = (await ethers.provider.getNetwork()).chainId;
+  if (chainId === 31337) {
+    return;
+  }
   try {
-    await run("verify:verify", {
+    await run('verify:verify', {
       address,
       constructorArguments,
     });
@@ -29,10 +32,14 @@ export const verifyContract = async (address: string, constructorArguments: any[
 };
 
 export const verifyImplementation = async (proxyAddress: string) => {
+  const chainId = (await ethers.provider.getNetwork()).chainId;
+  if (chainId === 31337) {
+    return;
+  }
   const implementationAddress = await getImplementationAddress(proxyAddress);
   console.log(`Verifying implementation at ${implementationAddress}`);
   try {
-    await run("verify:verify", {
+    await run('verify:verify', {
       address: implementationAddress,
     });
   } catch (e) {

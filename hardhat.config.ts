@@ -163,7 +163,7 @@ const config: HardhatUserConfig = {
   },
   contractSizer: {
     alphaSort: true,
-    runOnCompile: true,
+    runOnCompile: process.env.REPORT_SIZE === "true",
   },
 };
 export default config;

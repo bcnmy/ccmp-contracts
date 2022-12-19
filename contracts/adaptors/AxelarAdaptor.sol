@@ -175,18 +175,41 @@ contract AxelarAdaptor is CCMPAdaptorBase {
         );
     }
 
-    function setChainIdToName(
+    function _setChainIdToName(
         uint256 _chainId,
         string calldata _chainName
-    ) external onlyOwner {
+    ) internal {
         chainIdToName[_chainId] = _chainName;
         emit ChainNameUpdated(_chainId, _chainName);
     }
 
-    function setAxelarAdaptorAddressChecksummed(
+    function setChainIdToName(
+        uint256 _chainId,
+        string calldata _chainName
+    ) external onlyOwner {
+        _setChainIdToName(_chainId, _chainName);
+    }
+
+    function setChainIdToNameBatch(
+        uint256[] calldata _chainIds,
+        string[] calldata _chainNames
+    ) external onlyOwner {
+        if (_chainIds.length != _chainNames.length) {
+            revert ParameterArrayLengthMismatch();
+        }
+
+        uint256 length = _chainIds.length;
+        unchecked {
+            for (uint256 i = 0; i < length; ++i) {
+                _setChainIdToName(_chainIds[i], _chainNames[i]);
+            }
+        }
+    }
+
+    function _setAxelarAdaptorAddressChecksummed(
         string calldata _chainName,
         string calldata _adaptorAddressChecksummed
-    ) external onlyOwner {
+    ) internal {
         chainNameToAdaptorAddressChecksummed[
             _chainName
         ] = _adaptorAddressChecksummed;
@@ -194,6 +217,35 @@ contract AxelarAdaptor is CCMPAdaptorBase {
             _chainName,
             _adaptorAddressChecksummed
         );
+    }
+
+    function setAxelarAdaptorAddressChecksummed(
+        string calldata _chainName,
+        string calldata _adaptorAddressChecksummed
+    ) external onlyOwner {
+        _setAxelarAdaptorAddressChecksummed(
+            _chainName,
+            _adaptorAddressChecksummed
+        );
+    }
+
+    function setAxelarAdaptorAddressChecksummedBatch(
+        string[] calldata _chainNames,
+        string[] calldata _adaptorAddressChecksummeds
+    ) external onlyOwner {
+        if (_chainNames.length != _adaptorAddressChecksummeds.length) {
+            revert ParameterArrayLengthMismatch();
+        }
+
+        uint256 length = _chainNames.length;
+        unchecked {
+            for (uint256 i = 0; i < length; ++i) {
+                _setAxelarAdaptorAddressChecksummed(
+                    _chainNames[i],
+                    _adaptorAddressChecksummeds[i]
+                );
+            }
+        }
     }
 
     function updateAxelarGateway(

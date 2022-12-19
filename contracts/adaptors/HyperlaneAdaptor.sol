@@ -192,11 +192,48 @@ contract HyperlaneAdaptor is
         _updateDomainId(_chainId, _domainId);
     }
 
+    function updateDomainIdBatch(
+        uint256[] calldata _chainIds,
+        uint32[] calldata _domainIds
+    ) external onlyOwner {
+        if (_chainIds.length != _domainIds.length) {
+            revert ParameterArrayLengthMismatch();
+        }
+        uint256 length = _chainIds.length;
+        unchecked {
+            for (uint256 i = 0; i < length; ++i) {
+                _updateDomainId(_chainIds[i], _domainIds[i]);
+            }
+        }
+    }
+
+    function _setHyperlaneAdaptor(
+        uint256 _chainId,
+        address _hyperlaneAdaptor
+    ) internal {
+        chainIdToHyperlaneAdaptor[_chainId] = _hyperlaneAdaptor;
+        emit HyperlaneAdaptorUpdated(_chainId, _hyperlaneAdaptor);
+    }
+
     function setHyperlaneAdaptor(
         uint256 _chainId,
         address _hyperlaneAdaptor
     ) external onlyOwner {
-        chainIdToHyperlaneAdaptor[_chainId] = _hyperlaneAdaptor;
-        emit HyperlaneAdaptorUpdated(_chainId, _hyperlaneAdaptor);
+        _setHyperlaneAdaptor(_chainId, _hyperlaneAdaptor);
+    }
+
+    function setHyperlaneAdaptorBatch(
+        uint256[] calldata _chainIds,
+        address[] calldata _hyperlaneAdaptors
+    ) external onlyOwner {
+        if (_chainIds.length != _hyperlaneAdaptors.length) {
+            revert ParameterArrayLengthMismatch();
+        }
+        uint256 length = _chainIds.length;
+        unchecked {
+            for (uint256 i = 0; i < length; ++i) {
+                _setHyperlaneAdaptor(_chainIds[i], _hyperlaneAdaptors[i]);
+            }
+        }
     }
 }

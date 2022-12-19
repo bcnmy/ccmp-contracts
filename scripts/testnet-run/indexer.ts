@@ -1,7 +1,7 @@
 import { ethers } from 'hardhat';
 import axios from 'axios';
 import { ICCMPGateway__factory } from '../../typechain-types';
-import { fromContracts, fromChainId } from './config';
+import { fromContracts, fromChainId } from '../config';
 
 (async () => {
   const provider = new ethers.providers.WebSocketProvider(

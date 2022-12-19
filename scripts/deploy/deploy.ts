@@ -31,7 +31,7 @@ import { Contract, Wallet } from 'ethers';
 import { deployCreate3, FacetCutAction, getSelectors } from './utils';
 import { DiamondArgsStruct } from '../../typechain-types/contracts/gateway/Diamond';
 import { getDeployerInstance } from './deploy-metadeployer';
-import { DEPLOYMENT_SALTS } from './deploymentSalt';
+import { DEPLOYMENT_SALTS } from './deployment-salt';
 
 const AxelarAdaptorKey = 'axelar';
 const WormholeAdaptorKey = 'wormhole';
@@ -412,6 +412,15 @@ export const deploySampleContract = async (
 
 const transferOwnership = async (contract: Contract, newOwner: string, debug: boolean = false) => {
   debug && console.log(`Transferring ownership of ${contract.address} to ${newOwner}...`);
+  try {
+    const owner: string = await contract.owner();
+    if (owner.toLowerCase() === newOwner.toLowerCase()) {
+      debug && console.log(`Ownership already transferred.`);
+      return;
+    }
+  } catch (e) {
+    console.log(e);
+  }
   await contract.transferOwnership(newOwner);
   debug && console.log(`Ownership transferred.`);
 };

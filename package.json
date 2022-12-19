@@ -38,10 +38,10 @@
     "solidity-bytes-utils": "^0.8.0"
   },
   "scripts": {
-    "compile": "hardhat compile",
+    "compile": "REPORT_SIZE=true hardhat compile",
     "deploy:testnet": "hardhat run scripts/deploy/testnet.ts",
     "verify": "hardhat verify",
-    "test": "TESTCASE_RUNNING=true hardhat test",
+    "test": "REPORT_SIZE=true TESTCASE_RUNNING=true hardhat test",
     "upgrade-contract": "hardhat run scripts/upgrade/upgrade.ts",
     "publisher": "yarn publish --access public --scope biconomy",
     "coverage": "DISABLE_VIA_IR=true hardhat coverage"

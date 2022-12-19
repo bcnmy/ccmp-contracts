@@ -11,10 +11,9 @@ import {ICCMPGateway, ICCMPConfiguration} from "../../interfaces/ICCMPGateway.so
 import {ICCMPExecutor} from "../../interfaces/ICCMPExecutor.sol";
 
 contract CCMPConfigurationFacet is IERC173, ICCMPConfiguration {
-    function transferOwnership(address _newOwner)
-        external
-        override(IERC173, ICCMPConfiguration)
-    {
+    function transferOwnership(
+        address _newOwner
+    ) external override(IERC173, ICCMPConfiguration) {
         LibDiamond._enforceIsContractOwner();
         LibDiamond._setContractOwner(_newOwner);
     }
@@ -28,33 +27,66 @@ contract CCMPConfigurationFacet is IERC173, ICCMPConfiguration {
         owner_ = LibDiamond._contractOwner();
     }
 
+    function setGatewayBatch(
+        uint256[] calldata _chainId,
+        ICCMPGateway[] calldata _gateway
+    ) external {
+        LibDiamond._enforceIsContractOwner();
+        if (_chainId.length != _gateway.length) {
+            revert ParameterArrayLengthMismatch();
+        }
+        uint256 length = _chainId.length;
+        unchecked {
+            for (uint256 i; i < length; ++i) {
+                LibDiamond._diamondStorage().gateways[_chainId[i]] = _gateway[
+                    i
+                ];
+                emit GatewayUpdated(_chainId[i], _gateway[i]);
+            }
+        }
+    }
+
     function setGateway(uint256 _chainId, ICCMPGateway _gateway) external {
         LibDiamond._enforceIsContractOwner();
         LibDiamond._diamondStorage().gateways[_chainId] = _gateway;
         emit GatewayUpdated(_chainId, _gateway);
     }
 
-    function gateway(uint256 _chainId)
-        external
-        view
-        returns (ICCMPGateway gateway_)
-    {
+    function gateway(
+        uint256 _chainId
+    ) external view returns (ICCMPGateway gateway_) {
         gateway_ = LibDiamond._diamondStorage().gateways[_chainId];
     }
 
-    function setRouterAdaptor(string calldata name, ICCMPRouterAdaptor adaptor)
-        external
-    {
+    function setRouterAdaptorBatch(
+        string[] calldata names,
+        ICCMPRouterAdaptor[] calldata adaptors
+    ) external {
+        LibDiamond._enforceIsContractOwner();
+        if (names.length != adaptors.length) {
+            revert ParameterArrayLengthMismatch();
+        }
+        uint256 length = names.length;
+        unchecked {
+            for (uint256 i; i < length; ++i) {
+                LibDiamond._diamondStorage().adaptors[names[i]] = adaptors[i];
+                emit AdaptorUpdated(names[i], address(adaptors[i]));
+            }
+        }
+    }
+
+    function setRouterAdaptor(
+        string calldata name,
+        ICCMPRouterAdaptor adaptor
+    ) external {
         LibDiamond._enforceIsContractOwner();
         LibDiamond._diamondStorage().adaptors[name] = adaptor;
         emit AdaptorUpdated(name, address(adaptor));
     }
 
-    function routerAdator(string calldata name)
-        external
-        view
-        returns (ICCMPRouterAdaptor adaptor)
-    {
+    function routerAdaptor(
+        string calldata name
+    ) external view returns (ICCMPRouterAdaptor adaptor) {
         adaptor = LibDiamond._diamondStorage().adaptors[name];
     }
 

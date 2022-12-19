@@ -1,7 +1,7 @@
 import axios from "axios";
 import { ethers } from "hardhat";
 import { BigNumber } from "ethers";
-import { sourceHyphen, sourceToken, fromChainId, toChainId, toContracts, exitBatchHelper } from "../config";
+import { sourceHyphen, sourceToken, fromChainId, toChainId, toContracts, exitBatchHelper } from "../../config";
 
 const tenderlyKey = "OnBQh0eRTnW-TY88S9KYxpXtyeCFh1hK";
 const tenderlyUser = "ankurdubey521";

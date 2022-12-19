@@ -7,15 +7,23 @@ import {
   DiamondCutFacet__factory,
   DiamondLoupeFacet__factory,
 } from '../../typechain-types';
-import { getSelectors } from '../deploy/utils';
+import { deployCreate3, getSelectors } from './utils';
 import { verifyContract } from '../verify/verify';
 import type { Contract } from 'ethers';
-import { FacetCutAction } from '../deploy/utils';
+import { FacetCutAction } from './utils';
+import { getDeployerInstance } from './deploy-metadeployer';
+import { DEPLOYMENT_SALTS } from './deployment-salt';
 
 const factory = {
   configuration: CCMPConfigurationFacet__factory,
   receiveMessage: CCMPReceiverMessageFacet__factory,
   sendMessage: CCMPSendMessageFacet__factory,
+};
+
+const salt = {
+  configuration: DEPLOYMENT_SALTS.CCMPConfigurationFacet,
+  receiveMessage: DEPLOYMENT_SALTS.CCMPReceiverMessageFacet,
+  sendMessage: DEPLOYMENT_SALTS.CCMPSendMessageFacet,
 };
 
 const registerFacet = async (diamond: DiamondCutFacet, facets: Contract[]) => {
@@ -67,11 +75,19 @@ const registerFacet = async (diamond: DiamondCutFacet, facets: Contract[]) => {
 const deployFacet = async (name: keyof typeof factory): Promise<Contract> => {
   const signer = (await ethers.getSigners())[0];
   console.log(`Deploying ${name} facet...`);
-  const contract = await new factory[name](signer).deploy();
-  await contract.deployed();
-  console.log(`Deployed ${name} facet at ${contract.address}`);
-  setTimeout(() => verifyContract(contract.address, []), 10000);
-  return contract;
+  const deployer = await getDeployerInstance(true);
+  const facetAddres = await deployCreate3(
+    deployer.address,
+    salt[name],
+    new factory[name](signer),
+    [],
+    `${name}-facet`,
+    true
+  );
+  const facet = factory[name].connect(facetAddres, signer);
+  console.log(`Deployed ${name} facet at ${facet.address}`);
+  setTimeout(() => verifyContract(facet.address, []), 20000);
+  return facet;
 };
 
 (async () => {
