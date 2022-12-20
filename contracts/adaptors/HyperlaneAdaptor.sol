@@ -87,6 +87,8 @@ contract HyperlaneAdaptor is
         _updateDomainId(42, 3000);
         _updateDomainId(80001, 80001);
         _updateDomainId(69, 0x6f702d6b);
+        _updateDomainId(421613, 421613);
+        _updateDomainId(420, 420);
 
         // Mainnet
         _updateDomainId(42161, 0x617262);
