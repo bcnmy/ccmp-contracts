@@ -74,16 +74,26 @@ export const configureHyperlaneAdaptor = async (
     .map(([_chainId, { ccmp }]) => [_chainId, ccmp.HyperlaneAdaptor])
     .filter(([_, hyperlaneAdaptor]) => !!hyperlaneAdaptor);
   debug && console.log(`Hyperlane Adaptor list: ${JSON.stringify(hyperlaneAdaptorList, null, 2)}`);
-  const { wait, hash } = await HyperlaneAdaptor.setHyperlaneAdaptorBatch(
+  let { wait, hash } = await HyperlaneAdaptor.setHyperlaneAdaptorBatch(
     hyperlaneAdaptorList.map(([chainId, _]) => chainId),
     hyperlaneAdaptorList.map(([_, gateway]) => gateway)
   );
   debug && console.log(`Hyperlane Adaptor Set set tx hash: ${hash}`);
-  const { blockNumber, status } = await wait();
+  let { blockNumber, status } = await wait();
   if (status === 1) {
     debug && console.log(`Hyperlane Adaptor Set tx successful at block ${blockNumber}`);
   } else {
     debug && console.error(`Hyperlane Adaptor Set tx failed at block ${blockNumber}`);
+  }
+
+  debug && console.log(`Updating domain ids...`);
+  ({ hash, wait } = await HyperlaneAdaptor.updateDomainIdBatch([420, 421613], [420, 421613]));
+  debug && console.log(`Domain ID set tx hash: ${hash}`);
+  ({ blockNumber, status } = await wait());
+  if (status === 1) {
+    debug && console.log(`Domain ID Set tx successful at block ${blockNumber}`);
+  } else {
+    debug && console.error(`Domain ID Set tx failed at block ${blockNumber}`);
   }
 };
 
