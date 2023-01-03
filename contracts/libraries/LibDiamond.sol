@@ -67,8 +67,8 @@ library LibDiamond {
         // Contract pausibility
         address pauser;
         bool paused;
-        // Gas Fee Accounting
-        mapping(bytes32 => mapping(address => uint256)) gasFeePaidByToken;
+        // Gas Fee Accounting: Message Hash -> Token Address -> Relayer Address -> Gas Fee
+        mapping(bytes32 => mapping(address => mapping(address => uint256))) gasFeePaidByToken;
     }
 
     event OwnershipTransferred(
