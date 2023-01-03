@@ -92,13 +92,16 @@ contract CCMPSendMessageFacet is ICCMPGatewaySender, Constants {
 
     function getGasFeePaymentDetails(
         bytes32 _messageHash,
-        address[] calldata _tokens
+        address[] calldata _tokens,
+        address _relayer
     ) external view returns (uint256[] memory balances) {
         LibDiamond.CCMPDiamondStorage storage ds = LibDiamond._diamondStorage();
         balances = new uint256[](_tokens.length);
         unchecked {
             for (uint256 i = 0; i < _tokens.length; ++i) {
-                balances[i] = ds.gasFeePaidByToken[_messageHash][_tokens[i]];
+                balances[i] = ds.gasFeePaidByToken[_messageHash][_tokens[i]][
+                    _relayer
+                ];
             }
         }
     }
@@ -116,7 +119,9 @@ contract CCMPSendMessageFacet is ICCMPGatewaySender, Constants {
         LibDiamond.CCMPDiamondStorage storage ds = LibDiamond._diamondStorage();
 
         if (feeAmount > 0) {
-            ds.gasFeePaidByToken[_messageHash][tokenAddress] += feeAmount;
+            ds.gasFeePaidByToken[_messageHash][tokenAddress][
+                relayer
+            ] += feeAmount;
 
             if (tokenAddress == NATIVE_ADDRESS) {
                 if (msg.value != feeAmount) {

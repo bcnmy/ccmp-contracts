@@ -53,7 +53,8 @@ interface ICCMPGatewaySender is ICCMPGatewayBase {
 
     function getGasFeePaymentDetails(
         bytes32 _messageHash,
-        address[] calldata _tokens
+        address[] calldata _tokens,
+        address _relayer
     ) external view returns (uint256[] memory balances);
 
     /// @notice Handles fee payment
